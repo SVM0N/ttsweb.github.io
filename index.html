@@ -78,7 +78,7 @@ backdrop-filter: blur(40px) saturate(180%);
 -webkit-backdrop-filter: blur(40px) saturate(180%);
 border-bottom: 1px solid var(--glass-border);
 box-shadow: 0 8px 32px var(--shadow-color), inset 0 1px 0 var(--inset-shadow);
-padding: 20px;
+padding: 16px;
 overflow-y: auto;
 -webkit-overflow-scrolling: touch;
 transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -103,7 +103,7 @@ backdrop-filter: blur(20px);
 border: 1px solid var(--card-border);
 border-radius: 12px;
 padding: 12px;
-margin-bottom: 16px;
+margin-bottom: 12px;
 cursor: pointer;
 font-weight: 600;
 font-size: 15px;
@@ -164,7 +164,7 @@ font-size: 15px;
 color: var(--text-secondary);
 font-weight: 400;
 line-height: 1.4;
-margin-bottom: 24px;
+margin-bottom: 16px;
 }
 .input-card {
 background: var(--card-bg);
@@ -172,7 +172,7 @@ backdrop-filter: blur(20px) saturate(180%);
 -webkit-backdrop-filter: blur(20px) saturate(180%);
 border-radius: 16px;
 border: 1px solid var(--card-border);
-padding: 16px;
+padding: 14px;
 margin-bottom: 12px;
 box-shadow: 0 4px 16px var(--shadow-color), inset 0 1px 0 var(--inset-shadow);
 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -253,7 +253,7 @@ backdrop-filter: blur(30px) saturate(180%);
 border-radius: 16px;
 border: 1px solid var(--card-border);
 padding: 16px;
-margin: 16px 0;
+margin: 12px 0;
 box-shadow: 0 8px 24px var(--shadow-color), inset 0 1px 0 var(--inset-shadow);
 }
 .zoom-controls {
@@ -390,6 +390,9 @@ width: 100%;
 height: 100%;
 pointer-events: none;
 }
+.highlight-overlay.hidden {
+display: none;
+}
 canvas {
 display: block;
 width: 100%;
@@ -484,6 +487,60 @@ border: 1px solid var(--card-border);
 body.dark-mode .speed-value {
 color: var(--text-primary);
 }
+.toggle-switch {
+position: relative;
+display: inline-block;
+width: 51px;
+height: 31px;
+flex-shrink: 0;
+}
+.toggle-switch input {
+opacity: 0;
+width: 0;
+height: 0;
+}
+.toggle-slider {
+position: absolute;
+cursor: pointer;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: var(--slider-track);
+transition: 0.3s;
+border-radius: 31px;
+box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.toggle-slider:before {
+position: absolute;
+content: "";
+height: 23px;
+width: 23px;
+left: 4px;
+bottom: 4px;
+background: white;
+transition: 0.3s;
+border-radius: 50%;
+box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+input:checked + .toggle-slider {
+background: #34c759;
+}
+input:checked + .toggle-slider:before {
+transform: translateX(20px);
+}
+.toggle-row {
+display: flex;
+justify-content: space-between;
+align-items: center;
+gap: 12px;
+}
+.toggle-label-text {
+font-weight: 600;
+font-size: 15px;
+color: var(--text-primary);
+flex-grow: 1;
+}
 @media (min-width: 768px) {
 .app-container {
 flex-direction: row;
@@ -530,6 +587,9 @@ user-select: text;
 <div class="toggle-button" id="toggle-button">
 <span id="toggle-text">⌃ Show Controls</span>
 </div>
+<div style="margin-bottom: 12px;" id="collapsed-audio">
+<audio id="audio-player" controls disabled></audio>
+</div>
 <div class="collapsible-content">
 <div class="header-with-toggle">
 <h1>PDF Audio Player</h1>
@@ -537,7 +597,7 @@ user-select: text;
 <span id="theme-icon">🌙</span>
 </button>
 </div>
-<p class="subtitle">Upload your files to begin synchronized playback with real-time highlighting</p>
+<p class="subtitle">Upload files for synchronized playback with highlighting</p>
 <div class="input-card">
 <label class="input-label">Upload Files</label>
 <div class="file-inputs-combined">
@@ -577,9 +637,14 @@ user-select: text;
 <span id="speed-value" class="speed-value">1.0x</span>
 </div>
 <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+<div class="toggle-row" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--card-border);">
+<span class="toggle-label-text">Show Highlighter</span>
+<label class="toggle-switch">
+<input type="checkbox" id="highlighter-toggle" checked>
+<span class="toggle-slider"></span>
+</label>
 </div>
-<div class="info-card">
-<div class="zoom-controls">
+<div class="zoom-controls" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--card-border);">
 <span class="zoom-label">PDF Zoom</span>
 <div style="display: flex; align-items: center; gap: 8px;">
 <span id="zoom-value" class="zoom-value">100%</span>
@@ -598,9 +663,6 @@ user-select: text;
 👁️ Viewing: <span class="page-number">-</span>
 </div>
 </div>
-</div>
-<div style="margin-top: 16px;">
-<audio id="audio-player" controls disabled></audio>
 </div>
 </aside>
 <main class="main-viewer" id="pdf-viewer">
@@ -630,6 +692,7 @@ let audioPageDisplay = document.getElementById('audio-page-display');
 let userPageDisplay = document.getElementById('user-page-display');
 let speedSlider = document.getElementById('speed-slider');
 let speedValueDisplay = document.getElementById('speed-value');
+let highlighterToggle = document.getElementById('highlighter-toggle');
 let currentHighlight = null;
 let currentHighlightSentence = null;
 let currentAudioPage = null;
@@ -637,17 +700,15 @@ let currentUserPage = null;
 let pdfScale = 1.5;
 let fileTracker = { pdf: false, mp3: false, json: false };
 let intersectionObserver = null;
-
 let zoomLevel = 100;
+let highlighterEnabled = true;
 const zoomStep = 25;
 const minZoom = 50;
 const maxZoom = 200;
 const zoomInButton = document.getElementById('zoom-in');
 const zoomOutButton = document.getElementById('zoom-out');
 const zoomValueDisplay = document.getElementById('zoom-value');
-
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-
 const darkModeToggle = document.getElementById('dark-mode-toggle');
 const themeIcon = document.getElementById('theme-icon');
 const currentTheme = localStorage.getItem('theme');
@@ -661,21 +722,35 @@ const isDark = document.body.classList.contains('dark-mode');
 themeIcon.textContent = isDark ? '☀️' : '🌙';
 localStorage.setItem('theme', isDark ? 'dark' : 'light');
 });
-
+highlighterToggle.addEventListener('change', (e) => {
+highlighterEnabled = e.target.checked;
+const overlays = document.querySelectorAll('.highlight-overlay');
+overlays.forEach(overlay => {
+if (highlighterEnabled) {
+overlay.classList.remove('hidden');
+} else {
+overlay.classList.add('hidden');
+}
+});
+localStorage.setItem('highlighterEnabled', highlighterEnabled ? 'true' : 'false');
+});
+const savedHighlighterState = localStorage.getItem('highlighterEnabled');
+if (savedHighlighterState === 'false') {
+highlighterEnabled = false;
+highlighterToggle.checked = false;
+}
 zoomInButton.addEventListener('click', () => {
 if (zoomLevel < maxZoom) {
 zoomLevel += zoomStep;
 updateZoom();
 }
 });
-
 zoomOutButton.addEventListener('click', () => {
 if (zoomLevel > minZoom) {
 zoomLevel -= zoomStep;
 updateZoom();
 }
 });
-
 function updateZoom() {
 zoomValueDisplay.textContent = `${zoomLevel}%`;
 const containers = document.querySelectorAll('.page-container');
@@ -683,7 +758,6 @@ const zoomScale = zoomLevel / 100;
 containers.forEach((container, index) => {
 container.style.transform = `scale(${zoomScale})`;
 container.style.transformOrigin = 'top center';
-// When scaling down, reduce the space the element takes up
 if (index < containers.length - 1) {
 const originalHeight = container.offsetHeight;
 const scaledHeight = originalHeight * zoomScale;
@@ -692,13 +766,11 @@ container.style.marginBottom = `${16 - marginAdjustment}px`;
 }
 });
 }
-
 document.getElementById('pdf-file').addEventListener('change', handlePdfUpload);
 document.getElementById('mp3-file').addEventListener('change', handleMp3Upload);
 document.getElementById('json-file').addEventListener('change', handleJsonUpload);
 audioPlayer.addEventListener('timeupdate', handleTimeUpdate);
 speedSlider.addEventListener('input', handleSpeedChange);
-
 const toggleButton = document.getElementById('toggle-button');
 const toggleText = document.getElementById('toggle-text');
 const sidebar = document.getElementById('sidebar');
@@ -715,7 +787,6 @@ toggleText.textContent = '⌃ Show Controls';
 }
 });
 }
-
 function handlePdfUpload(e) {
 const file = e.target.files[0];
 if (!file) return;
@@ -743,7 +814,6 @@ console.error('PDF Load Error:', err);
 };
 fileReader.readAsArrayBuffer(file);
 }
-
 function handleMp3Upload(e) {
 const file = e.target.files[0];
 if (!file) return;
@@ -756,7 +826,6 @@ audioPlayer.src = url;
 fileTracker.mp3 = true;
 checkAllFilesLoaded();
 }
-
 function handleJsonUpload(e) {
 const file = e.target.files[0];
 if (!file) return;
@@ -780,7 +849,6 @@ console.error('JSON Parse Error:', err);
 };
 fileReader.readAsText(file);
 }
-
 function handleSpeedChange(e) {
 const speed = parseFloat(e.target.value);
 if (audioPlayer && !isNaN(speed)) {
@@ -788,7 +856,6 @@ audioPlayer.playbackRate = speed;
 speedValueDisplay.textContent = `${speed.toFixed(1)}x`;
 }
 }
-
 function inferLayoutDimensions(sentences) {
 inferredPageDims = {};
 if (!sentences || sentences.length === 0) return;
@@ -812,7 +879,6 @@ inferredPageDims[pageNum].maxY = point[1];
 });
 console.log("Inferred Page Dimensions:", inferredPageDims);
 }
-
 function checkAllFilesLoaded() {
 if (fileTracker.pdf && fileTracker.mp3 && fileTracker.json) {
 showStatus('Ready to play!', false, false);
@@ -835,7 +901,6 @@ currentUserPage = null;
 updatePageDisplays();
 }
 }
-
 async function renderAllPages() {
 if (!pdfDoc) return;
 const numPages = pdfDoc.numPages;
@@ -857,6 +922,9 @@ canvas.height = viewport.height;
 const highlightOverlay = document.createElement('div');
 highlightOverlay.id = `highlight-overlay-${i}`;
 highlightOverlay.className = 'highlight-overlay';
+if (!highlighterEnabled) {
+highlightOverlay.classList.add('hidden');
+}
 pageContainer.appendChild(canvas);
 pageContainer.appendChild(highlightOverlay);
 pdfContainer.appendChild(pageContainer);
@@ -873,7 +941,6 @@ console.error(`Error rendering page ${i}:`, err);
 setupIntersectionObserver();
 checkAllFilesLoaded();
 }
-
 function setupIntersectionObserver() {
 const options = {
 root: document.getElementById('pdf-viewer'),
@@ -885,7 +952,6 @@ document.querySelectorAll('.page-container').forEach(pageEl => {
 intersectionObserver.observe(pageEl);
 });
 }
-
 function handleIntersection(entries) {
 entries.forEach(entry => {
 if (entry.isIntersecting) {
@@ -897,7 +963,6 @@ updatePageDisplays();
 }
 });
 }
-
 function handleTimeUpdate() {
 if (!manifest || audioPlayer.paused) return;
 const currentTime = audioPlayer.currentTime;
@@ -910,15 +975,15 @@ updatePageDisplays();
 }
 if (sentence.i !== currentHighlightSentence) {
 currentHighlightSentence = sentence.i;
+if (highlighterEnabled) {
 drawHighlight(sentence);
 }
 }
 }
-
+}
 function findSentenceForTime(time) {
 return manifest.find(s => time >= s.start && time < s.end);
 }
-
 function drawHighlight(sentence) {
 if (currentHighlight) {
 currentHighlight.remove();
@@ -953,7 +1018,6 @@ box.style.height = `${final_height}px`;
 overlay.appendChild(box);
 currentHighlight = box;
 }
-
 function showStatus(message, isLoading, isError) {
 statusBox.style.display = 'flex';
 statusMessage.textContent = message;
@@ -966,7 +1030,6 @@ statusBox.className = 'status-box status-loading';
 statusBox.className = 'status-box status-success';
 }
 }
-
 function updatePageDisplays() {
 const totalPages = pdfDoc ? pdfDoc.numPages : '-';
 const reading = currentAudioPage ?? '-';
@@ -974,7 +1037,6 @@ const viewing = currentUserPage ?? '-';
 audioPageDisplay.innerHTML = `📖 Reading: <span class="page-number">${reading} / ${totalPages}</span>`;
 userPageDisplay.innerHTML = `👁️ Viewing: <span class="page-number">${viewing} / ${totalPages}</span>`;
 }
-
 let lastTouchEnd = 0;
 document.addEventListener('touchend', (event) => {
 const now = Date.now();
@@ -983,11 +1045,9 @@ event.preventDefault();
 }
 lastTouchEnd = now;
 }, false);
-
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 document.addEventListener('gesturechange', (e) => e.preventDefault());
 document.addEventListener('gestureend', (e) => e.preventDefault());
-
 let orientationChangeTimeout;
 window.addEventListener('orientationchange', () => {
 clearTimeout(orientationChangeTimeout);
@@ -995,8 +1055,7 @@ orientationChangeTimeout = setTimeout(() => {
 console.log('Orientation changed');
 }, 100);
 });
-
-console.log('✅ PDF Audio Player loaded - Sharp zoom at all levels!');
+console.log('✅ PDF Audio Player loaded with highlighter toggle!');
 </script>
 </body>
 </html>
