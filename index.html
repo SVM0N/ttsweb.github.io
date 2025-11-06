@@ -688,7 +688,6 @@ user-select: text;
 let pdfDoc = null;
 let manifest = null;
 let pageViewports = {};
-let inferredPageDims = {};
 let audioPlayer = document.getElementById('audio-player');
 let pdfContainer = document.getElementById('pdf-container');
 let viewerPlaceholder = document.getElementById('viewer-placeholder');
@@ -821,7 +820,6 @@ document.getElementById('pdf-file-name').textContent = file.name;
 viewerPlaceholder.style.display = 'none';
 showStatus('Rendering PDF pages...', true);
 pageViewports = {};
-inferredPageDims = {};
 currentUserPage = null;
 currentAudioPage = null;
 if (intersectionObserver) intersectionObserver.disconnect();
@@ -863,7 +861,6 @@ try {
 const data = JSON.parse(this.result);
 if (data && data.sentences && Array.isArray(data.sentences)) {
 manifest = data.sentences;
-inferLayoutDimensions(manifest);
 fileTracker.json = true;
 checkAllFilesLoaded();
 } else {
@@ -882,29 +879,6 @@ if (audioPlayer && !isNaN(speed)) {
 audioPlayer.playbackRate = speed;
 speedValueDisplay.textContent = `${speed.toFixed(1)}x`;
 }
-}
-function inferLayoutDimensions(sentences) {
-inferredPageDims = {};
-if (!sentences || sentences.length === 0) return;
-sentences.forEach(sentence => {
-const loc = sentence.location;
-if (!loc || !loc.page_number || !loc.points || !Array.isArray(loc.points) || loc.points.length === 0) return;
-const pageNum = loc.page_number;
-if (!inferredPageDims[pageNum]) {
-inferredPageDims[pageNum] = { maxX: 0, maxY: 0 };
-}
-loc.points.forEach(point => {
-if (Array.isArray(point) && point.length >= 2) {
-if (typeof point[0] === 'number' && point[0] > inferredPageDims[pageNum].maxX) {
-inferredPageDims[pageNum].maxX = point[0];
-}
-if (typeof point[1] === 'number' && point[1] > inferredPageDims[pageNum].maxY) {
-inferredPageDims[pageNum].maxY = point[1];
-}
-}
-});
-});
-console.log("Inferred Page Dimensions:", inferredPageDims);
 }
 function checkAllFilesLoaded() {
 if (fileTracker.pdf && fileTracker.mp3 && fileTracker.json) {
@@ -1028,12 +1002,15 @@ if (typeof y_min_raw !== 'number' || typeof y_max_raw !== 'number' || y_max_raw 
 const pageNum = loc.page_number;
 const overlay = document.getElementById(`highlight-overlay-${pageNum}`);
 const canvas = document.getElementById(`pdf-canvas-${pageNum}`);
-const inferredDims = inferredPageDims[pageNum];
-if (!overlay || !canvas || !inferredDims || !inferredDims.maxY) return;
-const normHeight = inferredDims.maxY;
+const pageViewport = pageViewports[pageNum];
+if (!overlay || !canvas || !pageViewport) return;
+// Use actual PDF page height (at scale 1.0) for correct normalization
+// Coordinates from PyMuPDF/unstructured are in PDF points (scale 1.0)
+const pdfPageHeight = pageViewport.height;
 const canvasHeight = canvas.height;
-const norm_y_min = y_min_raw / normHeight;
-const norm_y_max = y_max_raw / normHeight;
+// Normalize using actual page height, then scale to canvas
+const norm_y_min = y_min_raw / pdfPageHeight;
+const norm_y_max = y_max_raw / pdfPageHeight;
 const clamped_norm_y_min = Math.max(0, Math.min(1, norm_y_min));
 const clamped_norm_y_max = Math.max(0, Math.min(1, norm_y_max));
 let final_y = clamped_norm_y_min * canvasHeight;
