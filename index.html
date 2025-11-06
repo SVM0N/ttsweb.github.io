@@ -644,6 +644,13 @@ user-select: text;
 <span class="toggle-slider"></span>
 </label>
 </div>
+<div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--card-border);">
+<div class="speed-label">
+<span style="font-weight: 600; font-size: 15px;">Highlight Offset</span>
+<span id="offset-value" class="speed-value">0%</span>
+</div>
+<input type="range" id="offset-slider" min="-30" max="30" step="5" value="0">
+</div>
 <div class="zoom-controls" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--card-border);">
 <span class="zoom-label">PDF Zoom</span>
 <div style="display: flex; align-items: center; gap: 8px;">
@@ -693,6 +700,8 @@ let userPageDisplay = document.getElementById('user-page-display');
 let speedSlider = document.getElementById('speed-slider');
 let speedValueDisplay = document.getElementById('speed-value');
 let highlighterToggle = document.getElementById('highlighter-toggle');
+let offsetSlider = document.getElementById('offset-slider');
+let offsetValueDisplay = document.getElementById('offset-value');
 let currentHighlight = null;
 let currentHighlightSentence = null;
 let currentAudioPage = null;
@@ -702,6 +711,7 @@ let fileTracker = { pdf: false, mp3: false, json: false };
 let intersectionObserver = null;
 let zoomLevel = 100;
 let highlighterEnabled = true;
+let highlightOffset = 0;
 const zoomStep = 25;
 const minZoom = 50;
 const maxZoom = 200;
@@ -738,6 +748,17 @@ const savedHighlighterState = localStorage.getItem('highlighterEnabled');
 if (savedHighlighterState === 'false') {
 highlighterEnabled = false;
 highlighterToggle.checked = false;
+}
+offsetSlider.addEventListener('input', (e) => {
+highlightOffset = parseInt(e.target.value, 10);
+offsetValueDisplay.textContent = `${highlightOffset > 0 ? '+' : ''}${highlightOffset}%`;
+localStorage.setItem('highlightOffset', highlightOffset);
+});
+const savedOffset = localStorage.getItem('highlightOffset');
+if (savedOffset !== null) {
+highlightOffset = parseInt(savedOffset, 10);
+offsetSlider.value = highlightOffset;
+offsetValueDisplay.textContent = `${highlightOffset > 0 ? '+' : ''}${highlightOffset}%`;
 }
 zoomInButton.addEventListener('click', () => {
 if (zoomLevel < maxZoom) {
@@ -1009,8 +1030,11 @@ const norm_y_min = y_min_raw / normHeight;
 const norm_y_max = y_max_raw / normHeight;
 const clamped_norm_y_min = Math.max(0, Math.min(1, norm_y_min));
 const clamped_norm_y_max = Math.max(0, Math.min(1, norm_y_max));
-const final_y = clamped_norm_y_min * canvasHeight;
+let final_y = clamped_norm_y_min * canvasHeight;
 const final_height = (clamped_norm_y_max - clamped_norm_y_min) * canvasHeight;
+const offsetPixels = (highlightOffset / 100) * canvasHeight;
+final_y += offsetPixels;
+final_y = Math.max(0, Math.min(canvasHeight - final_height, final_y));
 const box = document.createElement('div');
 box.className = 'highlight-box';
 box.style.top = `${final_y}px`;
