@@ -649,7 +649,7 @@ user-select: text;
 <span style="font-weight: 600; font-size: 15px;">Highlight Offset</span>
 <span id="offset-value" class="speed-value">0%</span>
 </div>
-<input type="range" id="offset-slider" min="-30" max="30" step="5" value="0">
+<input type="range" id="offset-slider" min="-15" max="15" step="1" value="0">
 </div>
 <div class="zoom-controls" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--card-border);">
 <span class="zoom-label">PDF Zoom</span>
@@ -753,6 +753,12 @@ offsetSlider.addEventListener('input', (e) => {
 highlightOffset = parseInt(e.target.value, 10);
 offsetValueDisplay.textContent = `${highlightOffset > 0 ? '+' : ''}${highlightOffset}%`;
 localStorage.setItem('highlightOffset', highlightOffset);
+if (manifest && currentHighlightSentence !== null && highlighterEnabled) {
+const currentSentence = manifest.find(s => s.i === currentHighlightSentence);
+if (currentSentence) {
+drawHighlight(currentSentence);
+}
+}
 });
 const savedOffset = localStorage.getItem('highlightOffset');
 if (savedOffset !== null) {
