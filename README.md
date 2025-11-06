@@ -1,0 +1,330 @@
+# TTS Web - PDF to Synchronized Audio
+
+Convert PDFs and EPUBs into audiobooks with synchronized text highlighting using state-of-the-art text-to-speech models.
+
+## 🎯 What This Does
+
+This project provides Jupyter notebooks that:
+1. Extract text from PDFs/EPUBs with precise coordinate tracking
+2. Generate high-quality speech audio using AI TTS models
+3. Create timeline manifests for synchronized text highlighting
+4. Output files ready to upload to the web player at **https://svm0n.github.io/ttsweb.github.io/**
+
+## 🚀 Getting Started
+
+### Local Setup
+
+**Prerequisites:**
+- Python 3.10+
+- conda (recommended) or pip
+- ffmpeg (for MP3 conversion)
+  - macOS: `brew install ffmpeg`
+  - Linux: `sudo apt-get install ffmpeg`
+  - Windows: Download from https://ffmpeg.org/
+
+**Steps:**
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/SVM0N/ttsweb.github.io.git
+   cd ttsweb.github.io
+   ```
+
+2. Choose a notebook (see "Which Model to Use" below)
+
+3. Open the notebook in Jupyter:
+   ```bash
+   jupyter notebook TTS_Kokoro_Local.ipynb
+   ```
+
+4. Follow the notebook instructions to create an isolated conda environment (recommended)
+
+5. Run all cells and provide your PDF/EPUB file path when prompted
+
+### Google Colab Setup
+
+1. Visit this repository on GitHub: https://github.com/SVM0N/ttsweb.github.io
+
+2. Click on the notebook you want to use (e.g., `TTS_Kokoro_Local.ipynb`)
+
+3. Click "Open in Colab" button (or manually upload to Colab)
+
+4. Upload your PDF/EPUB file to Colab using the file upload interface:
+   ```python
+   from google.colab import files
+   uploaded = files.upload()
+   ```
+
+5. Run all cells
+
+6. Download the generated audio and manifest files from Colab
+
+## 📚 Available Models & When to Use Each
+
+### **1. TTS_Kokoro_Local.ipynb** ⭐ **RECOMMENDED DEFAULT**
+
+**When to use:**
+- General purpose, works on most machines
+- Best balance of quality, speed, and coordinate accuracy
+- PDF extraction using ML-based layout analysis
+
+**Machine requirements:**
+- RAM: 8GB minimum, 16GB recommended
+- GPU: Optional (CUDA) but works fine on CPU
+- Storage: ~5GB for dependencies
+
+**Pros:**
+- Excellent text extraction for complex layouts
+- Accurate bounding box coordinates
+- Multiple voice options
+- Reliable and well-tested
+
+**Cons:**
+- Slower PDF processing than PyMuPDF
+- Larger dependency footprint
+
+---
+
+### **2. TTS_F5_MLX.ipynb** 🍎 **BEST FOR APPLE SILICON**
+
+**When to use:**
+- You have Apple Silicon (M1/M2/M3/M4)
+- Want maximum performance on Mac
+- Need voice cloning capabilities
+
+**Machine requirements:**
+- Apple Silicon Mac (M1/M2/M3/M4)
+- RAM: 8GB minimum, 16GB recommended
+- Storage: ~5GB for dependencies
+
+**Pros:**
+- Optimized for Apple's MLX framework
+- Excellent multicore utilization
+- Zero-shot voice cloning support
+- ~4 seconds per sentence on M3/M4
+
+**Cons:**
+- Apple Silicon only (CPU fallback available but slow)
+- Requires reference audio for voice cloning
+
+**Voice cloning:** Provide a 5-10 second mono WAV file (24kHz) and its transcription to clone any voice.
+
+---
+
+### **3. TTS_Kokoro_PyMuPDF.ipynb** ⚡ **FASTEST**
+
+**When to use:**
+- PDF has a clean text layer (not scanned)
+- Need fastest possible processing
+- Have limited RAM/storage
+
+**Machine requirements:**
+- RAM: 4GB minimum
+- CPU: Any modern CPU
+- Storage: ~2GB for dependencies
+
+**Pros:**
+- Extremely fast PDF text extraction
+- Minimal dependencies
+- Low resource usage
+- Very accurate coordinates
+
+**Cons:**
+- Only works for PDFs with text layers
+- Fails on scanned PDFs or images
+- No layout analysis
+
+---
+
+### **4. TTS_Kokoro_Vision.ipynb** 🔍 **FOR SCANNED PDFs**
+
+**When to use:**
+- PDF is scanned (no text layer)
+- Need OCR capabilities
+- macOS with Vision Framework
+
+**Machine requirements:**
+- macOS 10.15+
+- RAM: 8GB minimum
+- Storage: ~3GB for dependencies
+
+**Pros:**
+- Works on scanned/image-based PDFs
+- Uses Apple's Vision Framework OCR
+- Good for documents without text layers
+
+**Cons:**
+- macOS only
+- Slower than direct text extraction
+- OCR may have accuracy issues
+
+---
+
+### **5. TTS_Nougat.ipynb** 📄 **FOR ACADEMIC PAPERS**
+
+**When to use:**
+- Processing academic papers with equations
+- Need LaTeX/math support
+- Document has complex formatting
+
+**Machine requirements:**
+- RAM: 16GB recommended
+- GPU: Highly recommended (CUDA)
+- Storage: ~8GB for dependencies
+
+**Pros:**
+- Excellent for academic documents
+- Handles equations and math notation
+- LaTeX support
+
+**Cons:**
+- Very slow without GPU
+- Large model downloads
+- Overkill for simple text
+
+---
+
+## 🎬 Output Files
+
+Each notebook generates two files:
+
+### 1. Audio File
+- **Format:** MP3 or WAV (configurable)
+- **Sample Rate:** 24kHz (F5-MLX) or 24kHz (Kokoro)
+- **Naming:** `{filename}_tts.mp3` or `{filename}_tts.wav`
+
+### 2. Manifest File
+- **Format:** JSON
+- **Naming:** `{filename}_tts_manifest.json`
+- **Contains:**
+  - Sentence-level timestamps
+  - Text content for each segment
+  - Coordinate data for highlighting (page number, bounding boxes)
+
+**Example manifest structure:**
+```json
+{
+  "audioUrl": "document_tts.mp3",
+  "sentences": [
+    {
+      "i": 0,
+      "start": 0.0,
+      "end": 2.5,
+      "text": "This is the first sentence.",
+      "location": {
+        "page_number": 1,
+        "points": [[x0,y0], [x1,y1], [x2,y2], [x3,y3]]
+      }
+    }
+  ]
+}
+```
+
+## 🌐 Using the Web Player
+
+1. **Generate your files** using any notebook above
+
+2. **Upload to the web player** at: **https://svm0n.github.io/ttsweb.github.io/**
+
+3. **Upload both files:**
+   - Your PDF file
+   - The audio file (MP3/WAV)
+   - The manifest JSON file
+
+4. **Play and enjoy** synchronized audio with text highlighting!
+
+The web player features:
+- PDF rendering with synchronized highlighting
+- Audio playback controls (play/pause, seek, speed control)
+- Click on text to jump to that audio position
+- Dark mode support
+- Mobile-friendly responsive design
+
+## 🛠️ Customization
+
+### Voice Selection (Kokoro models)
+Available voices: `af_heart`, `af_bella`, `af_sarah`, `am_adam`, `am_michael`
+
+```python
+VOICE = "af_heart"  # Change to any available voice
+```
+
+### Voice Cloning (F5-TTS-MLX)
+Provide reference audio for zero-shot voice cloning:
+
+```python
+REF_AUDIO = "reference.wav"  # 5-10s mono WAV at 24kHz
+REF_TEXT = "This is what the speaker says in the reference audio."
+```
+
+Convert your audio:
+```bash
+ffmpeg -i input.wav -ac 1 -ar 24000 -sample_fmt s16 -t 10 reference.wav
+```
+
+### Output Format
+```python
+FORMAT = "mp3"  # or "wav"
+```
+
+### Speech Speed
+```python
+SPEED = 1.0  # 0.5 = half speed, 2.0 = double speed
+```
+
+## 📋 Quick Decision Guide
+
+**I have Apple Silicon (M1/M2/M3/M4):**
+→ Use **TTS_F5_MLX.ipynb**
+
+**I need maximum speed and my PDF has text:**
+→ Use **TTS_Kokoro_PyMuPDF.ipynb**
+
+**I have a scanned PDF (no text layer):**
+→ Use **TTS_Kokoro_Vision.ipynb** (macOS) or **TTS_Nougat.ipynb** (with GPU)
+
+**I have an academic paper with equations:**
+→ Use **TTS_Nougat.ipynb**
+
+**I'm not sure / want the safest option:**
+→ Use **TTS_Kokoro_Local.ipynb** ⭐
+
+## 🔧 Troubleshooting
+
+### "NotImplementedError: aten::angle not implemented for MPS"
+- Add this before imports: `os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'`
+- Restart your Jupyter kernel
+
+### "Highlights are off by 1-2 lines"
+- This has been fixed in the latest version
+- Make sure you're using the updated notebooks
+
+### "Out of memory"
+- Use **TTS_Kokoro_PyMuPDF.ipynb** (lowest memory usage)
+- Or process shorter documents
+- Or add more RAM/swap space
+
+### "PDF extraction failed"
+- If using PyMuPDF: Your PDF might be scanned → Use Vision or Nougat
+- If using Vision: Check macOS version compatibility
+- If using Nougat: Ensure GPU is available and CUDA installed
+
+## 📄 License
+
+MIT License - Copyright (c) 2025 SVM0N
+
+See [LICENSE](LICENSE) file for details.
+
+## 🙏 Credits
+
+This project uses:
+- [Kokoro TTS](https://github.com/remsky/Kokoro-82M) - High-quality text-to-speech
+- [F5-TTS-MLX](https://github.com/lucasnewman/f5-tts-mlx) - Apple Silicon optimized TTS
+- [Unstructured.io](https://github.com/Unstructured-IO/unstructured) - Document parsing
+- [Detectron2](https://github.com/facebookresearch/detectron2) - Layout detection
+- [PyMuPDF](https://github.com/pymupdf/PyMuPDF) - Fast PDF processing
+- [Nougat](https://github.com/facebookresearch/nougat) - Academic document OCR
+- [PDF.js](https://mozilla.github.io/pdf.js/) - Web PDF rendering
+
+---
+
+**Made with ❤️ for accessible reading**
