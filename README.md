@@ -310,9 +310,8 @@ SPEED = 1.0  # 0.5 = half speed, 2.0 = double speed
 
 ## 📄 License
 
-MIT License - Copyright (c) 2025 SVM0N
-
-See [LICENSE](LICENSE) file for details.
+   This project is licensed for non-commercial use only.
+   For commercial licensing, please contact SVM0N on GitHub.
 
 ## 🙏 Credits
 
