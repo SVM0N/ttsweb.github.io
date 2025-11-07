@@ -12,8 +12,8 @@ Convert PDFs and EPUBs into audiobooks with synchronized text highlighting using
 - [What This Does](#-what-this-does)
 - [Getting Started](#-getting-started)
   - [Quick Start with Unified Notebook](#quick-start-with-unified-notebook)
-  - [Traditional Setup](#traditional-setup-legacy-notebooks)
   - [Google Colab Setup](#google-colab-setup)
+  - [Traditional Setup](#traditional-setup-legacy-notebooks)
 - [Modular Architecture](#-modular-architecture)
   - [Core Modules](#core-modules)
   - [Benefits](#benefits-of-modular-design)
@@ -47,7 +47,7 @@ This project provides Jupyter notebooks that:
 ## 🚀 Getting Started
 
 ### Quick Start with Unified Notebook
-
+#### RECOMMENDED
 **The easiest way to use this project is with the new unified notebook:**
 
 1. Clone this repository:
@@ -74,6 +74,26 @@ This project provides Jupyter notebooks that:
 - 🎯 **Easy configuration**: Choose models/extractors in one cell at the top
 - 💾 **Saves storage**: No need to install everything upfront
 - 🔄 **Easy switching**: Change configuration and re-run without reinstalling
+
+
+
+### Google Colab Setup
+
+1. Visit this repository on GitHub: https://github.com/SVM0N/ttsweb.github.io
+
+2. Click on the notebook you want to use (e.g., `TTS_Kokoro_Local.ipynb`)
+
+3. Click "Open in Colab" button (or manually upload to Colab)
+
+4. Upload your PDF/EPUB file to Colab using the file upload interface:
+   ```python
+   from google.colab import files
+   uploaded = files.upload()
+   ```
+
+5. Run all cells
+
+6. Download the generated audio and manifest files from Colab
 
 ### Traditional Setup (Legacy Notebooks)
 
@@ -104,24 +124,6 @@ This project provides Jupyter notebooks that:
 4. Follow the notebook instructions to create an isolated conda environment (recommended)
 
 5. Run all cells and provide your PDF/EPUB file path when prompted
-
-### Google Colab Setup
-
-1. Visit this repository on GitHub: https://github.com/SVM0N/ttsweb.github.io
-
-2. Click on the notebook you want to use (e.g., `TTS_Kokoro_Local.ipynb`)
-
-3. Click "Open in Colab" button (or manually upload to Colab)
-
-4. Upload your PDF/EPUB file to Colab using the file upload interface:
-   ```python
-   from google.colab import files
-   uploaded = files.upload()
-   ```
-
-5. Run all cells
-
-6. Download the generated audio and manifest files from Colab
 
 ## 🏗️ Modular Architecture
 
