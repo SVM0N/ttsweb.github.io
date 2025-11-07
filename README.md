@@ -48,6 +48,19 @@ This project provides Jupyter notebooks that:
 #### RECOMMENDED
 **The easiest way to use this project is with the new unified notebook:**
 
+#### Option 1: Google Colab (No Installation Required) 🌐
+1. Click here to open in Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SVM0N/ttsweb.github.io/blob/main/TTS.ipynb)
+
+2. The notebook will automatically:
+   - Detect it's running in Colab
+   - Download required Python modules from GitHub
+   - Set up the environment
+
+3. Upload your PDF/EPUB when prompted and run the cells
+
+4. Download your generated audio and manifest files
+
+#### Option 2: Local Installation
 1. Clone this repository:
    ```bash
    git clone https://github.com/SVM0N/ttsweb.github.io.git
@@ -72,26 +85,9 @@ This project provides Jupyter notebooks that:
 - 🎯 **Easy configuration**: Choose models/extractors in one cell at the top
 - 💾 **Saves storage**: No need to install everything upfront
 - 🔄 **Easy switching**: Change configuration and re-run without reinstalling
+- 🌐 **Works everywhere**: Runs locally or in Google Colab with automatic detection
 
 
-
-### Google Colab Setup
-
-1. Visit this repository on GitHub: https://github.com/SVM0N/ttsweb.github.io
-
-2. Click on the notebook you want to use (e.g., `TTS_Kokoro_Local.ipynb`)
-
-3. Click "Open in Colab" button (or manually upload to Colab)
-
-4. Upload your PDF/EPUB file to Colab using the file upload interface:
-   ```python
-   from google.colab import files
-   uploaded = files.upload()
-   ```
-
-5. Run all cells
-
-6. Download the generated audio and manifest files from Colab
 
 ### Traditional Setup (Legacy Notebooks)
 
