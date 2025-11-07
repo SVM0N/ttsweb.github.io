@@ -33,13 +33,13 @@ class TTSConfig:
         """Set up and validate output directory.
 
         Args:
-            output_dir: Output directory path or None for current directory
+            output_dir: Output directory path or None for files directory
 
         Returns:
             Resolved Path object
         """
         if output_dir is None:
-            output_dir = Path(".")
+            output_dir = Path("files")
         else:
             output_dir = Path(output_dir)
 
