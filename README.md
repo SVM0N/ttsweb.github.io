@@ -3,11 +3,15 @@
 Convert PDFs and EPUBs into audiobooks with synchronized text highlighting using state-of-the-art text-to-speech models.
 
 <details>
-<summary><strong>📑 Table of Contents</strong></summary>
+<summary>
+
+## 📑 Table of Contents
+
+</summary>
 
 - [What This Does](#-what-this-does)
 - [Getting Started](#-getting-started)
-  - [Quick Start with Unified Notebook](#quick-start-with-unified-notebook-)
+  - [Quick Start with Unified Notebook](#quick-start-with-unified-notebook)
   - [Traditional Setup](#traditional-setup-legacy-notebooks)
   - [Google Colab Setup](#google-colab-setup)
 - [Modular Architecture](#-modular-architecture)
@@ -42,7 +46,7 @@ This project provides Jupyter notebooks that:
 
 ## 🚀 Getting Started
 
-### Quick Start with Unified Notebook ⭐ NEW
+### Quick Start with Unified Notebook
 
 **The easiest way to use this project is with the new unified notebook:**
 
@@ -406,7 +410,7 @@ This project uses:
 <details>
 <summary>
 
-### **Legacy Notebooks**
+## **Legacy Notebooks**
 
 
 </summary>
