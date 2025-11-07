@@ -2,6 +2,37 @@
 
 Convert PDFs and EPUBs into audiobooks with synchronized text highlighting using state-of-the-art text-to-speech models.
 
+<details>
+<summary><strong>📑 Table of Contents</strong></summary>
+
+- [What This Does](#-what-this-does)
+- [Getting Started](#-getting-started)
+  - [Quick Start with Unified Notebook](#quick-start-with-unified-notebook-)
+  - [Traditional Setup](#traditional-setup-legacy-notebooks)
+  - [Google Colab Setup](#google-colab-setup)
+- [Modular Architecture](#-modular-architecture)
+  - [Core Modules](#core-modules)
+  - [Benefits](#benefits-of-modular-design)
+  - [Programmatic Usage](#using-the-modules-programmatically)
+- [Available Models](#-available-models--when-to-use-each)
+- [Output Files](#-output-files)
+- [Web Player](#-using-the-web-player)
+- [Customization](#-customization)
+  - [Voice Selection](#voice-selection-kokoro-models)
+  - [Voice Cloning](#voice-cloning-f5-tts-mlx)
+  - [Output Format](#output-format)
+  - [Speech Speed](#speech-speed)
+- [Managing Caches](#-managing-model-caches)
+- [Decision Guide](#-quick-decision-guide)
+- [Troubleshooting](#-troubleshooting)
+- [License](#-license)
+- [Credits](#-credits)
+- [Legacy Notebooks](#legacy-notebooks)
+
+</details>
+
+---
+
 ## 🎯 What This Does
 This project provides Jupyter notebooks that:
 1. Extract text from PDFs/EPUBs with precise coordinate tracking
@@ -372,10 +403,6 @@ This project uses:
 
 ---
 
-**Made with ❤️ for accessible reading**
-
----
-
 <details>
 <summary>
 
@@ -567,3 +594,7 @@ The following notebooks have been moved to the `archived/` folder and are still 
 
 
 </details>
+
+---
+
+**Made with ❤️ for accessible reading**
