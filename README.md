@@ -12,7 +12,32 @@ This project provides Jupyter notebooks that:
 
 ## 🚀 Getting Started
 
-### Local Setup
+### Quick Start with Unified Notebook ⭐ NEW
+
+**The easiest way to use this project is with the new unified notebook:**
+
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/SVM0N/ttsweb.github.io.git
+   cd ttsweb.github.io
+   ```
+
+2. Open the unified notebook:
+   ```bash
+   jupyter notebook TTS.ipynb
+   ```
+
+3. Follow the notebook instructions to:
+   - Create an isolated conda environment (optional but recommended)
+   - Choose your TTS model (Kokoro v0.9, Kokoro v1.0, Silero v5)
+   - Choose your PDF extractor (Unstructured, PyMuPDF, Vision, Nougat)
+   - Run synthesis on text, PDFs, or EPUBs
+
+**The unified notebook (`TTS.ipynb`) combines all models and extractors in one place!**
+
+### Traditional Setup (Legacy Notebooks)
+
+You can also use the individual notebooks if you prefer:
 
 **Prerequisites:**
 - Python 3.10+
@@ -58,7 +83,115 @@ This project provides Jupyter notebooks that:
 
 6. Download the generated audio and manifest files from Colab
 
+## 🏗️ Modular Architecture
+
+This project now features a **modular Python architecture** that makes it easy to:
+- Switch between different TTS models without code duplication
+- Choose PDF extraction strategies based on your needs
+- Extend functionality with custom backends
+
+### Core Modules
+
+**`TTS.ipynb`** - Unified notebook interface
+- Single notebook for all TTS models and PDF extractors
+- Interactive model and extractor selection
+- No code duplication across notebooks
+
+**`tts_backends.py`** - TTS model backends
+- `KokoroBackend`: Kokoro TTS (v0.9 and v1.0)
+- `SileroBackend`: Silero v5 Russian TTS
+- Extensible for adding new models
+
+**`pdf_extractors.py`** - PDF extraction strategies
+- `UnstructuredExtractor`: Advanced layout analysis (default)
+- `PyMuPDFExtractor`: Fast extraction for clean PDFs
+- `VisionExtractor`: OCR for scanned PDFs (macOS only)
+- `NougatExtractor`: Academic papers with equations
+
+**`tts_utils.py`** - Common utilities
+- EPUB extraction
+- Sentence splitting
+- WAV to MP3 conversion
+- File naming utilities
+
+**`manifest.py`** - Manifest generation
+- Timeline creation with sentence-level timing
+- Coordinate tracking for synchronized highlighting
+- Manifest validation and statistics
+
+**`config.py`** - Configuration management
+- Device selection (CUDA/CPU/MPS)
+- Output directory management
+- Logging configuration
+
+### Benefits of Modular Design
+
+- **No Code Duplication**: Common functionality shared across all notebooks
+- **Easy to Extend**: Add new TTS models or PDF extractors as plugins
+- **Mix and Match**: Combine any TTS model with any PDF extractor
+- **Better Testing**: Each module can be tested independently
+- **Cleaner Codebase**: Easier to maintain and debug
+
+### Using the Modules Programmatically
+
+You can also use the modules directly in your own Python scripts:
+
+```python
+from config import TTSConfig
+from tts_backends import create_backend
+from pdf_extractors import get_available_extractors
+
+# Configure
+config = TTSConfig(output_dir=".", device="auto")
+
+# Create TTS backend
+tts = create_backend("kokoro_1.0", device=config.device)
+
+# Get PDF extractor
+extractors = get_available_extractors()
+pdf_extractor = extractors["pymupdf"]
+
+# Extract and synthesize
+pdf_bytes = open("document.pdf", "rb")
+elements = pdf_extractor.extract(pdf_bytes)
+wav_bytes, timeline = tts.synthesize_text_to_wav(elements, voice="af_heart")
+```
+
 ## 📚 Available Models & When to Use Each
+
+### **NEW: TTS.ipynb** ⭐ **UNIFIED NOTEBOOK**
+
+**When to use:**
+- You want a single notebook that supports all models
+- You want to easily switch between TTS models
+- You want to try different PDF extraction strategies
+- You prefer a clean, modular interface
+
+**Supported TTS Models:**
+- Kokoro v0.9.4+ (10 voices, English-focused)
+- Kokoro v1.0 (54 voices, 8 languages)
+- Silero v5 (Russian, 6 speakers)
+
+**Supported PDF Extractors:**
+- Unstructured (advanced layout analysis)
+- PyMuPDF (fast, lightweight)
+- Apple Vision (OCR, macOS only)
+- Nougat (academic papers)
+
+**Pros:**
+- All-in-one solution
+- No code duplication
+- Easy to switch between models
+- Modular and extensible
+
+**Cons:**
+- Requires all module files (tts_backends.py, pdf_extractors.py, etc.)
+
+---
+
+### **Legacy Notebooks**
+
+The following notebooks are still available for backwards compatibility:
 
 ### **1. TTS_Kokoro_Local.ipynb** ⭐ **RECOMMENDED DEFAULT**
 
@@ -193,7 +326,31 @@ This project provides Jupyter notebooks that:
 
 ---
 
-### **6. TTS_Nougat.ipynb** 📄 **FOR ACADEMIC PAPERS**
+### **6. TTS_Silero_v5_Local.ipynb** 🇷🇺 **FOR RUSSIAN LANGUAGE**
+
+**When to use:**
+- Need Russian language text-to-speech
+- Want high-quality Russian voice synthesis
+- Processing Russian documents
+
+**Machine requirements:**
+- RAM: 8GB minimum
+- GPU: Optional (CUDA) but works fine on CPU
+- Storage: ~3GB for dependencies
+
+**Pros:**
+- Excellent Russian pronunciation
+- 6 different speakers (xenia, eugene, baya, kseniya, aleksandr, irina)
+- SSML support with automated stress and homographs
+- Fast synthesis
+
+**Cons:**
+- Russian language only
+- Limited to 6 speakers
+
+---
+
+### **7. TTS_Nougat.ipynb** 📄 **FOR ACADEMIC PAPERS**
 
 **When to use:**
 - Processing academic papers with equations
@@ -336,20 +493,26 @@ Each local notebook includes an optional cleanup section at the end to help mana
 
 ## 📋 Quick Decision Guide
 
+**I want the easiest, most flexible option:**
+→ Use **TTS.ipynb** ⭐ (Unified notebook - supports all models)
+
+**I need Russian language TTS:**
+→ Use **TTS.ipynb** with Silero v5 or **TTS_Silero_v5_Local.ipynb**
+
 **I have Apple Silicon (M1/M2/M3/M4):**
 → Use **TTS_F5_MLX.ipynb**
 
 **I need maximum speed and my PDF has text:**
-→ Use **TTS_Kokoro_PyMuPDF.ipynb**
+→ Use **TTS.ipynb** with PyMuPDF extractor or **TTS_Kokoro_PyMuPDF.ipynb**
 
 **I have a scanned PDF (no text layer):**
-→ Use **TTS_Kokoro_Vision.ipynb** (macOS) or **TTS_Nougat.ipynb** (with GPU)
+→ Use **TTS.ipynb** with Vision/Nougat extractor or **TTS_Kokoro_Vision.ipynb** (macOS) / **TTS_Nougat.ipynb** (with GPU)
 
 **I have an academic paper with equations:**
-→ Use **TTS_Nougat.ipynb**
+→ Use **TTS.ipynb** with Nougat extractor or **TTS_Nougat.ipynb**
 
 **I'm not sure / want the safest option:**
-→ Use **TTS_Kokoro_Local.ipynb** ⭐
+→ Use **TTS.ipynb** (unified) or **TTS_Kokoro_Local.ipynb** ⭐
 
 ## 🔧 Troubleshooting
 
