@@ -14,8 +14,8 @@ import zipfile
 from pathlib import Path
 from typing import Union, Optional, List, Tuple
 
-from tts_utils import wav_to_mp3_bytes, safe_name, extract_chapters_from_epub
-from manifest import create_manifest, save_manifest
+from .tts_utils import wav_to_mp3_bytes, safe_name, extract_chapters_from_epub
+from .manifest import create_manifest, save_manifest
 
 
 def synth_string(

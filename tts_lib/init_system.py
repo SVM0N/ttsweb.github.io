@@ -7,9 +7,9 @@ This module handles:
 - Initializing PDF extractor
 """
 
-from config import TTSConfig, print_device_info, setup_logging
-from tts_backends import create_backend
-from synthesis import synth_string, synth_pdf, synth_epub
+from .config import TTSConfig, print_device_info, setup_logging
+from .tts_backends import create_backend
+from .synthesis import synth_string, synth_pdf, synth_epub
 
 
 def import_modules(enable_pdf_input, pdf_extractor):
@@ -27,7 +27,7 @@ def import_modules(enable_pdf_input, pdf_extractor):
     # Import PDF extractor if needed
     pdf_extractors = None
     if enable_pdf_input and pdf_extractor:
-        from pdf_extractors import get_available_extractors
+        from .pdf_extractors import get_available_extractors
         pdf_extractors = get_available_extractors
 
     # Set up logging to reduce noise
@@ -76,7 +76,7 @@ def initialize_system(
     pdf_extractor = None
     if enable_pdf_input and pdf_extractor_name:
         print(f"\n📥 Loading PDF extractor: {pdf_extractor_name}...")
-        from pdf_extractors import get_available_extractors
+        from .pdf_extractors import get_available_extractors
         extractors = get_available_extractors()
         pdf_extractor = extractors[pdf_extractor_name]
         print(f"✓ PDF extractor loaded: {pdf_extractor.get_name()}")
