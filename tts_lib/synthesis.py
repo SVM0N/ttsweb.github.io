@@ -27,7 +27,6 @@ def synth_string(
     out_format: str = "wav",
     basename: str = "tts_text",
     tts_model: str = "kokoro_1.0",
-    enable_text_input: bool = True,
     enable_mp3_output: bool = True,
     **kwargs
 ) -> Tuple[str, str]:
@@ -42,16 +41,12 @@ def synth_string(
         out_format: Output format ("wav" or "mp3")
         basename: Base name for output files
         tts_model: TTS model name
-        enable_text_input: Whether text input is enabled
         enable_mp3_output: Whether MP3 output is enabled
         **kwargs: Additional model-specific parameters
 
     Returns:
         Tuple of (audio_path, manifest_path)
     """
-    if not enable_text_input:
-        raise ValueError("Text input is disabled. Set ENABLE_TEXT_INPUT=True in configuration.")
-
     if out_format == "mp3" and not enable_mp3_output:
         raise ValueError("MP3 output is disabled. Set ENABLE_MP3_OUTPUT=True in configuration.")
 
@@ -108,7 +103,6 @@ def synth_pdf(
     basename: Optional[str] = None,
     pages: Optional[List[int]] = None,
     tts_model: str = "kokoro_1.0",
-    enable_pdf_input: bool = True,
     enable_mp3_output: bool = True,
     **kwargs
 ) -> Tuple[str, str]:
@@ -125,16 +119,12 @@ def synth_pdf(
         basename: Base name for output files (None for auto from filename)
         pages: List of page numbers to extract (None for all pages)
         tts_model: TTS model name
-        enable_pdf_input: Whether PDF input is enabled
         enable_mp3_output: Whether MP3 output is enabled
         **kwargs: Additional model-specific parameters
 
     Returns:
         Tuple of (audio_path, manifest_path)
     """
-    if not enable_pdf_input:
-        raise ValueError("PDF input is disabled. Set ENABLE_PDF_INPUT=True in configuration.")
-
     if pdf_extractor is None:
         raise ValueError("No PDF extractor configured. Set PDF_EXTRACTOR in configuration.")
 
@@ -199,7 +189,6 @@ def synth_epub(
     per_chapter_format: str = "wav",
     zip_name: Optional[str] = None,
     tts_model: str = "kokoro_1.0",
-    enable_epub_input: bool = True,
     enable_mp3_output: bool = True,
     **kwargs
 ) -> str:
@@ -214,16 +203,12 @@ def synth_epub(
         per_chapter_format: Output format per chapter ("wav" or "mp3")
         zip_name: Name for output ZIP file (None for auto from filename)
         tts_model: TTS model name
-        enable_epub_input: Whether EPUB input is enabled
         enable_mp3_output: Whether MP3 output is enabled
         **kwargs: Additional model-specific parameters
 
     Returns:
         Path to output ZIP file
     """
-    if not enable_epub_input:
-        raise ValueError("EPUB input is disabled. Set ENABLE_EPUB_INPUT=True in configuration.")
-
     if per_chapter_format == "mp3" and not enable_mp3_output:
         raise ValueError("MP3 output is disabled. Set ENABLE_MP3_OUTPUT=True in configuration.")
 

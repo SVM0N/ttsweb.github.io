@@ -19,8 +19,7 @@ def install_package(package):
 def install_dependencies(
     tts_model,
     pdf_extractor=None,
-    enable_pdf_input=False,
-    enable_epub_input=False,
+    conversion_type="string",
     enable_mp3_output=False
 ):
     """Install only the dependencies needed for the selected configuration.
@@ -28,8 +27,7 @@ def install_dependencies(
     Args:
         tts_model: TTS model name ("kokoro_0.9", "kokoro_1.0", "maya1", "silero_v5")
         pdf_extractor: PDF extractor name ("unstructured", "pymupdf", "vision", "nougat", None)
-        enable_pdf_input: Whether PDF input is enabled
-        enable_epub_input: Whether EPUB input is enabled
+        conversion_type: Type of conversion ("string", "pdf", "epub")
         enable_mp3_output: Whether MP3 output is enabled
     """
     print("="*60)
@@ -88,7 +86,7 @@ def install_dependencies(
         print("✓ Silero loads via torch.hub (no additional packages needed)")
 
     # PDF extractor dependencies
-    if enable_pdf_input and pdf_extractor:
+    if conversion_type == "pdf" and pdf_extractor:
         print("\n📄 Installing PDF extractor dependencies...")
 
         if pdf_extractor == "unstructured":

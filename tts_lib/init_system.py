@@ -12,21 +12,21 @@ from .tts_backends import create_backend
 from .synthesis import synth_string, synth_pdf, synth_epub
 
 
-def import_modules(enable_pdf_input, pdf_extractor):
+def import_modules(conversion_type, pdf_extractor):
     """Import required modules and set up logging.
 
     Args:
-        enable_pdf_input: Whether PDF input is enabled
+        conversion_type: Type of conversion ("string", "pdf", "epub")
         pdf_extractor: PDF extractor name (or None)
 
     Returns:
-        pdf_extractors module if PDF input is enabled, else None
+        pdf_extractors module if PDF conversion is enabled, else None
     """
     print("\n📥 Importing modules...")
 
     # Import PDF extractor if needed
     pdf_extractors = None
-    if enable_pdf_input and pdf_extractor:
+    if conversion_type == "pdf" and pdf_extractor:
         from .pdf_extractors import get_available_extractors
         pdf_extractors = get_available_extractors
 
@@ -43,7 +43,7 @@ def initialize_system(
     output_dir,
     device,
     pdf_extractor_name=None,
-    enable_pdf_input=False
+    conversion_type="string"
 ):
     """Initialize the TTS system.
 
@@ -52,7 +52,7 @@ def initialize_system(
         output_dir: Output directory path
         device: Device to use ("auto", "cuda", "cpu", "mps")
         pdf_extractor_name: PDF extractor name (or None)
-        enable_pdf_input: Whether PDF input is enabled
+        conversion_type: Type of conversion ("string", "pdf", "epub")
 
     Returns:
         Tuple of (tts_backend, config, pdf_extractor)
@@ -74,14 +74,14 @@ def initialize_system(
 
     # Load PDF extractor if needed
     pdf_extractor = None
-    if enable_pdf_input and pdf_extractor_name:
+    if conversion_type == "pdf" and pdf_extractor_name:
         print(f"\n📥 Loading PDF extractor: {pdf_extractor_name}...")
         from .pdf_extractors import get_available_extractors
         extractors = get_available_extractors()
         pdf_extractor = extractors[pdf_extractor_name]
         print(f"✓ PDF extractor loaded: {pdf_extractor.get_name()}")
         print(f"  Description: {pdf_extractor.get_description()}")
-    else:
+    elif conversion_type == "pdf":
         print("\n⚠️  PDF extraction disabled (PDF_EXTRACTOR not set)")
 
     print("\n✓ System initialized and ready!")

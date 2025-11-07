@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 def run_conversion(conversion_type, tts, config, pdf_extractor, tts_model,
-                   enable_text_input, enable_pdf_input, enable_epub_input, enable_mp3_output,
+                   enable_mp3_output,
                    pdf_path="files/Case1Writeup.pdf", pdf_pages=None,
                    epub_path="book.epub", zip_name="",
                    in_colab=False):
@@ -25,10 +25,7 @@ def run_conversion(conversion_type, tts, config, pdf_extractor, tts_model,
         config: TTSConfig instance
         pdf_extractor: PDF extractor instance (only needed for PDF conversion)
         tts_model: Name of the TTS model being used
-        enable_text_input: Whether text input is enabled
-        enable_pdf_input: Whether PDF input is enabled
-        enable_epub_input: Whether EPUB input is enabled
-        enable_mp3_output: Whether MP3 output is enabled
+        enable_mp3_output: Whether MP3 output is enabled (vs WAV)
         pdf_path: Path to PDF file (for PDF conversion)
         pdf_pages: List of page numbers or None for all pages (for PDF conversion)
         epub_path: Path to EPUB file (for EPUB conversion)
@@ -48,7 +45,6 @@ def run_conversion(conversion_type, tts, config, pdf_extractor, tts_model,
             tts=tts,
             config=config,
             tts_model=tts_model,
-            enable_text_input=enable_text_input,
             enable_mp3_output=enable_mp3_output,
             in_colab=in_colab
         )
@@ -59,7 +55,6 @@ def run_conversion(conversion_type, tts, config, pdf_extractor, tts_model,
             config=config,
             pdf_extractor=pdf_extractor,
             tts_model=tts_model,
-            enable_pdf_input=enable_pdf_input,
             enable_mp3_output=enable_mp3_output,
             pdf_path=pdf_path,
             pages=pdf_pages,
@@ -71,7 +66,6 @@ def run_conversion(conversion_type, tts, config, pdf_extractor, tts_model,
             tts=tts,
             config=config,
             tts_model=tts_model,
-            enable_epub_input=enable_epub_input,
             enable_mp3_output=enable_mp3_output,
             epub_path=epub_path,
             zip_name=zip_name,
@@ -84,13 +78,9 @@ def run_conversion(conversion_type, tts, config, pdf_extractor, tts_model,
         return None
 
 
-def run_string_to_audio(tts, config, tts_model, enable_text_input, enable_mp3_output, in_colab=False):
+def run_string_to_audio(tts, config, tts_model, enable_mp3_output, in_colab=False):
     """Convert text string to audio."""
     from tts_lib.synthesis import synth_string
-
-    if not enable_text_input:
-        print("⚠️  Text input is disabled. Set ENABLE_TEXT_INPUT=True to use this conversion type.")
-        return None, None
 
     # Configuration
     VOICE = None  # Use default voice (or specify a voice description)
@@ -114,7 +104,6 @@ def run_string_to_audio(tts, config, tts_model, enable_text_input, enable_mp3_ou
         out_format=FORMAT,
         basename=BASENAME,
         tts_model=tts_model,
-        enable_text_input=enable_text_input,
         enable_mp3_output=enable_mp3_output
     )
 
@@ -130,14 +119,10 @@ def run_string_to_audio(tts, config, tts_model, enable_text_input, enable_mp3_ou
     return audio_path, manifest_path
 
 
-def run_pdf_to_audio(tts, config, pdf_extractor, tts_model, enable_pdf_input, enable_mp3_output,
+def run_pdf_to_audio(tts, config, pdf_extractor, tts_model, enable_mp3_output,
                      pdf_path="files/Case1Writeup.pdf", pages=None, in_colab=False):
     """Convert PDF to audio with optional page selection."""
     from tts_lib.synthesis import synth_pdf
-
-    if not enable_pdf_input:
-        print("⚠️  PDF input is disabled. Set ENABLE_PDF_INPUT=True and PDF_EXTRACTOR to use this conversion type.")
-        return None, None
 
     # Configuration
     VOICE = None  # Use default voice
@@ -168,7 +153,6 @@ def run_pdf_to_audio(tts, config, pdf_extractor, tts_model, enable_pdf_input, en
         out_format=FORMAT,
         pages=pages,
         tts_model=tts_model,
-        enable_pdf_input=enable_pdf_input,
         enable_mp3_output=enable_mp3_output
     )
 
@@ -184,14 +168,10 @@ def run_pdf_to_audio(tts, config, pdf_extractor, tts_model, enable_pdf_input, en
     return audio_path, manifest_path
 
 
-def run_epub_to_audio(tts, config, tts_model, enable_epub_input, enable_mp3_output,
+def run_epub_to_audio(tts, config, tts_model, enable_mp3_output,
                       epub_path="book.epub", zip_name="", in_colab=False):
     """Convert EPUB to per-chapter audio ZIP."""
     from tts_lib.synthesis import synth_epub
-
-    if not enable_epub_input:
-        print("⚠️  EPUB input is disabled. Set ENABLE_EPUB_INPUT=True to use this conversion type.")
-        return None
 
     # Configuration
     VOICE = None  # Use default voice
@@ -220,7 +200,6 @@ def run_epub_to_audio(tts, config, tts_model, enable_epub_input, enable_mp3_outp
         per_chapter_format=CHAPTER_FORMAT,
         zip_name=(zip_name or None),
         tts_model=tts_model,
-        enable_epub_input=enable_epub_input,
         enable_mp3_output=enable_mp3_output
     )
 
