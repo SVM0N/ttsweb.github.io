@@ -204,9 +204,10 @@ wav_bytes, timeline = tts.synthesize_text_to_wav(elements, voice="af_heart")
 - You prefer a clean, modular interface
 
 **Supported TTS Models:**
-- Kokoro v0.9.4+ (10 voices, English-focused)
-- Kokoro v1.0 (54 voices, 8 languages)
-- Silero v5 (Russian, 6 speakers)
+- **Kokoro v0.9.4+** (10 voices, English-focused, stable)
+- **Kokoro v1.0** (54 voices, 8 languages, latest)
+- **Maya1** (20+ emotions, natural language voices, expressive, GPU required)
+- **Silero v5** (Russian, 6 speakers)
 
 **Supported PDF Extractors:**
 - Unstructured (advanced layout analysis)
@@ -219,9 +220,37 @@ wav_bytes, timeline = tts.synthesize_text_to_wav(elements, voice="af_heart")
 - No code duplication
 - Easy to switch between models
 - Modular and extensible
+- Maya1 support for expressive, emotional speech
 
 **Cons:**
 - Requires all module files (tts_backends.py, pdf_extractors.py, etc.)
+- Maya1 requires GPU with 16GB+ VRAM
+
+---
+
+### **Maya1 Model Details** 🎭 **EXPRESSIVE TTS**
+
+**What makes Maya1 special:**
+- **20+ emotions**: laugh, cry, whisper, angry, sigh, gasp, and more
+- **Natural language voice descriptions**: Describe voices in plain English like "40-year-old, warm, conversational"
+- **Inline emotion tags**: Add emotions directly in text like `<laugh>` or `<whisper>`
+- **High quality**: 3B parameters, trained on diverse data
+
+**Requirements:**
+- GPU with 16GB+ VRAM (A100, H100, or RTX 4090 recommended)
+- CUDA support (will not work on CPU/MPS)
+- First run downloads ~3GB model
+- Best for Google Colab with GPU runtime
+
+**Example voice descriptions:**
+- "Realistic male voice in the 30s with American accent"
+- "Warm female voice in the 40s, conversational"
+- "Young energetic male voice, British accent"
+
+**Example with emotions:**
+```
+"Hello! <laugh> This is amazing. <whisper> Can you hear me?"
+```
 
 ---
 
@@ -347,11 +376,14 @@ Each local notebook includes an optional cleanup section at the end to help mana
 **I want the easiest, most flexible option:**
 → Use **TTS.ipynb** ⭐ (Unified notebook - recommended for everyone)
 
+**I need expressive, emotional speech:**
+→ Use **TTS.ipynb** with Maya1 backend (requires GPU in Google Colab)
+
 **I need Russian language TTS:**
 → Use **TTS.ipynb** with Silero v5 backend
 
 **I have Apple Silicon (M1/M2/M3/M4):**
-→ Use **TTS_F5_MLX.ipynb** (archived/TTS_F5_MLX.ipynb)
+→ Use **TTS_F5_MLX.ipynb** (archived/TTS_F5_MLX.ipynb) or **TTS.ipynb** with Kokoro
 
 **I need maximum speed and my PDF has text:**
 → Use **TTS.ipynb** with PyMuPDF extractor
@@ -361,6 +393,9 @@ Each local notebook includes an optional cleanup section at the end to help mana
 
 **I have an academic paper with equations:**
 → Use **TTS.ipynb** with Nougat extractor
+
+**I have access to a GPU with 16GB+ VRAM:**
+→ Try **Maya1** for the most expressive and natural-sounding speech
 
 **I prefer the old standalone notebooks:**
 → Check the `archived/` folder for legacy notebooks
