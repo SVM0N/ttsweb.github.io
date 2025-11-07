@@ -1,0 +1,40 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Rounded square background with gradient -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="110" fill="url(#bg)"/>
+
+  <!-- PDF Document icon -->
+  <g filter="url(#shadow)">
+    <!-- Document -->
+    <path d="M160 100 C160 85 172 75 185 75 L285 75 L370 160 L370 400 C370 415 358 425 345 425 L185 425 C172 425 160 415 160 400 Z" fill="white" opacity="0.95"/>
+
+    <!-- Folded corner -->
+    <path d="M285 75 L285 145 C285 153 292 160 300 160 L370 160 Z" fill="#e0e0e0" opacity="0.8"/>
+
+    <!-- PDF text lines -->
+    <rect x="200" y="200" width="130" height="15" rx="7" fill="#4facfe" opacity="0.6"/>
+    <rect x="200" y="230" width="110" height="15" rx="7" fill="#4facfe" opacity="0.5"/>
+    <rect x="200" y="260" width="120" height="15" rx="7" fill="#4facfe" opacity="0.4"/>
+  </g>
+
+  <!-- Audio/Speaker icon -->
+  <g filter="url(#shadow)">
+    <!-- Speaker base -->
+    <path d="M140 280 L100 320 L100 380 L140 420 L180 420 L180 280 Z" fill="white" opacity="0.95"/>
+
+    <!-- Sound waves -->
+    <path d="M200 310 Q220 320 220 350 Q220 380 200 390" stroke="white" stroke-width="12" fill="none" stroke-linecap="round" opacity="0.9"/>
+    <path d="M230 295 Q260 320 260 350 Q260 380 230 405" stroke="white" stroke-width="12" fill="none" stroke-linecap="round" opacity="0.8"/>
+    <path d="M270 275 Q310 320 310 350 Q310 380 270 425" stroke="white" stroke-width="12" fill="none" stroke-linecap="round" opacity="0.7"/>
+  </g>
+</svg>
