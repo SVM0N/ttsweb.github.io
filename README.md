@@ -35,9 +35,15 @@ This project provides Jupyter notebooks that:
 
 **The unified notebook (`TTS.ipynb`) combines all models and extractors in one place!**
 
+**Benefits of the unified notebook:**
+- ✨ **Smart dependency installation**: Only installs packages you actually need
+- 🎯 **Easy configuration**: Choose models/extractors in one cell at the top
+- 💾 **Saves storage**: No need to install everything upfront
+- 🔄 **Easy switching**: Change configuration and re-run without reinstalling
+
 ### Traditional Setup (Legacy Notebooks)
 
-You can also use the individual notebooks if you prefer:
+**Legacy notebooks have been moved to the `archived/` folder.** You can still use them if you prefer the old standalone approach, but the unified notebook is recommended for new users.
 
 **Prerequisites:**
 - Python 3.10+
@@ -191,7 +197,7 @@ wav_bytes, timeline = tts.synthesize_text_to_wav(elements, voice="af_heart")
 
 ### **Legacy Notebooks**
 
-The following notebooks are still available for backwards compatibility:
+The following notebooks have been moved to the `archived/` folder and are still available for backwards compatibility:
 
 ### **1. TTS_Kokoro_Local.ipynb** ⭐ **RECOMMENDED DEFAULT**
 
@@ -494,25 +500,25 @@ Each local notebook includes an optional cleanup section at the end to help mana
 ## 📋 Quick Decision Guide
 
 **I want the easiest, most flexible option:**
-→ Use **TTS.ipynb** ⭐ (Unified notebook - supports all models)
+→ Use **TTS.ipynb** ⭐ (Unified notebook - recommended for everyone)
 
 **I need Russian language TTS:**
-→ Use **TTS.ipynb** with Silero v5 or **TTS_Silero_v5_Local.ipynb**
+→ Use **TTS.ipynb** with Silero v5 backend
 
 **I have Apple Silicon (M1/M2/M3/M4):**
-→ Use **TTS_F5_MLX.ipynb**
+→ Use **TTS_F5_MLX.ipynb** (archived/TTS_F5_MLX.ipynb)
 
 **I need maximum speed and my PDF has text:**
-→ Use **TTS.ipynb** with PyMuPDF extractor or **TTS_Kokoro_PyMuPDF.ipynb**
+→ Use **TTS.ipynb** with PyMuPDF extractor
 
 **I have a scanned PDF (no text layer):**
-→ Use **TTS.ipynb** with Vision/Nougat extractor or **TTS_Kokoro_Vision.ipynb** (macOS) / **TTS_Nougat.ipynb** (with GPU)
+→ Use **TTS.ipynb** with Vision/Nougat extractor
 
 **I have an academic paper with equations:**
-→ Use **TTS.ipynb** with Nougat extractor or **TTS_Nougat.ipynb**
+→ Use **TTS.ipynb** with Nougat extractor
 
-**I'm not sure / want the safest option:**
-→ Use **TTS.ipynb** (unified) or **TTS_Kokoro_Local.ipynb** ⭐
+**I prefer the old standalone notebooks:**
+→ Check the `archived/` folder for legacy notebooks
 
 ## 🔧 Troubleshooting
 
