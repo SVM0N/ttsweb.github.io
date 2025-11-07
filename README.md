@@ -66,6 +66,7 @@ This project provides Jupyter notebooks that:
 - General purpose, works on most machines
 - Best balance of quality, speed, and coordinate accuracy
 - PDF extraction using ML-based layout analysis
+- Stable version with Kokoro v0.9.4+
 
 **Machine requirements:**
 - RAM: 8GB minimum, 16GB recommended
@@ -75,7 +76,7 @@ This project provides Jupyter notebooks that:
 **Pros:**
 - Excellent text extraction for complex layouts
 - Accurate bounding box coordinates
-- Multiple voice options
+- Multiple voice options (10 voices)
 - Reliable and well-tested
 
 **Cons:**
@@ -84,7 +85,40 @@ This project provides Jupyter notebooks that:
 
 ---
 
-### **2. TTS_F5_MLX.ipynb** 🍎 **BEST FOR APPLE SILICON**
+### **2. TTS_Kokoro_v.1.0_Local.ipynb** 🆕 **LATEST KOKORO**
+
+**When to use:**
+- Want the latest Kokoro v1.0 features
+- Need access to 54 voices across 8 languages
+- Want voice blending capabilities
+- Multi-language support (French, Japanese, Korean, Chinese, etc.)
+
+**Machine requirements:**
+- RAM: 8GB minimum, 16GB recommended
+- GPU: Optional (CUDA) but works fine on CPU
+- Storage: ~5GB for dependencies
+
+**Pros:**
+- 54 voices (vs 10 in v0.9.x)
+- 8 languages (vs 1 in v0.9.x)
+- Voice blending for custom voices
+- Same API as v0.9.x (backward compatible)
+- Trained on hundreds of hours of audio
+
+**Cons:**
+- Newer, less battle-tested than v0.9.x
+- Larger model downloads
+
+**Available voices:**
+- US Female (11): af_alloy, af_aoede, af_bella, af_heart, af_jessica, af_kore, af_nicole, af_nova, af_river, af_sarah, af_sky
+- US Male (8): am_adam, am_echo, am_eric, am_fenrir, am_liam, am_michael, am_onyx, am_puck
+- British Female (4): bf_alice, bf_emma, bf_isabella, bf_lily
+- British Male (4): bm_daniel, bm_fable, bm_george, bm_lewis
+- Plus voices for French, Japanese, Korean, Chinese, and more
+
+---
+
+### **3. TTS_F5_MLX.ipynb** 🍎 **BEST FOR APPLE SILICON**
 
 **When to use:**
 - You have Apple Silicon (M1/M2/M3/M4)
@@ -110,7 +144,7 @@ This project provides Jupyter notebooks that:
 
 ---
 
-### **3. TTS_Kokoro_PyMuPDF.ipynb** ⚡ **FASTEST**
+### **4. TTS_Kokoro_PyMuPDF.ipynb** ⚡ **FASTEST**
 
 **When to use:**
 - PDF has a clean text layer (not scanned)
@@ -135,7 +169,7 @@ This project provides Jupyter notebooks that:
 
 ---
 
-### **4. TTS_Kokoro_Vision.ipynb** 🔍 **FOR SCANNED PDFs**
+### **5. TTS_Kokoro_Vision.ipynb** 🔍 **FOR SCANNED PDFs**
 
 **When to use:**
 - PDF is scanned (no text layer)
@@ -159,7 +193,7 @@ This project provides Jupyter notebooks that:
 
 ---
 
-### **5. TTS_Nougat.ipynb** 📄 **FOR ACADEMIC PAPERS**
+### **6. TTS_Nougat.ipynb** 📄 **FOR ACADEMIC PAPERS**
 
 **When to use:**
 - Processing academic papers with equations
@@ -242,7 +276,13 @@ The web player features:
 ## 🛠️ Customization
 
 ### Voice Selection (Kokoro models)
-Available voices: `af_heart`, `af_bella`, `af_sarah`, `am_adam`, `am_michael`
+
+**Kokoro v0.9.x (TTS_Kokoro_Local.ipynb):**
+- Available voices: `af_heart`, `af_bella`, `af_sarah`, `am_adam`, `am_michael`, and more
+
+**Kokoro v1.0 (TTS_Kokoro_v.1.0_Local.ipynb):**
+- 54 voices across 8 languages (see full list in section 2 above)
+- US, British, French, Japanese, Korean, Chinese voices available
 
 ```python
 VOICE = "af_heart"  # Change to any available voice
@@ -270,6 +310,29 @@ FORMAT = "mp3"  # or "wav"
 ```python
 SPEED = 1.0  # 0.5 = half speed, 2.0 = double speed
 ```
+
+## 🗑️ Managing Model Caches
+
+TTS models are cached locally to improve performance. Each notebook includes a cache management section at the end where you can:
+
+- **View cache locations and sizes** for:
+  - HuggingFace models (`~/.cache/huggingface/`)
+  - PyTorch models (`~/.cache/torch/`)
+  - Pip packages
+  - Model-specific caches
+
+- **Delete cached models** to free up storage:
+  - Individual model deletion
+  - Bulk cache cleanup
+  - Environment-specific cleanup
+
+**Typical cache sizes:**
+- Kokoro models: ~500MB - 1GB
+- F5-TTS-MLX models: ~300MB - 500MB
+- Detectron2 models: ~200MB - 400MB
+- Nougat models: ~1GB - 2GB
+
+Each local notebook includes an optional cleanup section at the end to help manage these caches.
 
 ## 📋 Quick Decision Guide
 
