@@ -11,6 +11,79 @@ import os
 from pathlib import Path
 
 
+def run_conversion(conversion_type, tts, config, pdf_extractor, tts_model,
+                   enable_text_input, enable_pdf_input, enable_epub_input, enable_mp3_output,
+                   pdf_path="files/Case1Writeup.pdf", pdf_pages=None,
+                   epub_path="book.epub", zip_name="",
+                   in_colab=False):
+    """
+    Universal conversion function that routes to the appropriate conversion type.
+
+    Args:
+        conversion_type: One of "string", "pdf", or "epub"
+        tts: TTS backend instance
+        config: TTSConfig instance
+        pdf_extractor: PDF extractor instance (only needed for PDF conversion)
+        tts_model: Name of the TTS model being used
+        enable_text_input: Whether text input is enabled
+        enable_pdf_input: Whether PDF input is enabled
+        enable_epub_input: Whether EPUB input is enabled
+        enable_mp3_output: Whether MP3 output is enabled
+        pdf_path: Path to PDF file (for PDF conversion)
+        pdf_pages: List of page numbers or None for all pages (for PDF conversion)
+        epub_path: Path to EPUB file (for EPUB conversion)
+        zip_name: Custom ZIP name (for EPUB conversion)
+        in_colab: Whether running in Google Colab
+
+    Returns:
+        Tuple of (audio_path, manifest_path) for string/pdf, or zip_path for epub
+    """
+    print("="*60)
+    print(f"RUNNING CONVERSION: {conversion_type.upper()}")
+    print("="*60)
+    print()
+
+    if conversion_type == "string":
+        return run_string_to_audio(
+            tts=tts,
+            config=config,
+            tts_model=tts_model,
+            enable_text_input=enable_text_input,
+            enable_mp3_output=enable_mp3_output,
+            in_colab=in_colab
+        )
+
+    elif conversion_type == "pdf":
+        return run_pdf_to_audio(
+            tts=tts,
+            config=config,
+            pdf_extractor=pdf_extractor,
+            tts_model=tts_model,
+            enable_pdf_input=enable_pdf_input,
+            enable_mp3_output=enable_mp3_output,
+            pdf_path=pdf_path,
+            pages=pdf_pages,
+            in_colab=in_colab
+        )
+
+    elif conversion_type == "epub":
+        return run_epub_to_audio(
+            tts=tts,
+            config=config,
+            tts_model=tts_model,
+            enable_epub_input=enable_epub_input,
+            enable_mp3_output=enable_mp3_output,
+            epub_path=epub_path,
+            zip_name=zip_name,
+            in_colab=in_colab
+        )
+
+    else:
+        print(f"⚠️  Invalid conversion type: {conversion_type}")
+        print("   Valid options: 'string', 'pdf', 'epub'")
+        return None
+
+
 def run_string_to_audio(tts, config, tts_model, enable_text_input, enable_mp3_output, in_colab=False):
     """Convert text string to audio."""
     from tts_lib.synthesis import synth_string
