@@ -35,8 +35,6 @@ Convert PDFs and EPUBs into audiobooks with synchronized text highlighting using
 
 </details>
 
----
-
 ## 🎯 What This Does
 This project provides Jupyter notebooks that:
 1. Extract text from PDFs/EPUBs with precise coordinate tracking
