@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdf-audio-player-v1';
+const CACHE_NAME = 'pdf-audio-player-v2';
 const urlsToCache = [
   './',
   './index.html',
@@ -45,6 +45,43 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Special handling for audio/video with Range requests (for seeking)
+  if (event.request.headers.get('range')) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(cache => {
+        return cache.match(event.request.url).then(cachedResponse => {
+          if (!cachedResponse) {
+            // Not in cache, fetch from network
+            return fetch(event.request);
+          }
+
+          // Parse range header
+          const rangeHeader = event.request.headers.get('range');
+          const parts = rangeHeader.replace(/bytes=/, '').split('-');
+          const start = parseInt(parts[0], 10);
+
+          return cachedResponse.blob().then(blob => {
+            const end = parts[1] ? parseInt(parts[1], 10) : blob.size - 1;
+            const sliced = blob.slice(start, end + 1);
+
+            return new Response(sliced, {
+              status: 206,
+              statusText: 'Partial Content',
+              headers: {
+                'Content-Range': `bytes ${start}-${end}/${blob.size}`,
+                'Content-Length': sliced.size,
+                'Content-Type': cachedResponse.headers.get('Content-Type') || 'audio/mpeg',
+                'Accept-Ranges': 'bytes'
+              }
+            });
+          });
+        });
+      })
+    );
+    return;
+  }
+
+  // Regular cache-first strategy for non-range requests
   event.respondWith(
     caches.match(event.request)
       .then(response => {

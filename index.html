@@ -683,6 +683,11 @@ user-select: text;
 👁️ Viewing: <span class="page-number">-</span>
 </div>
 </div>
+<div class="input-card">
+<button class="toggle-button" id="reset-data-button" style="background: linear-gradient(135deg, rgba(255, 59, 48, 0.15) 0%, rgba(255, 59, 48, 0.1) 100%); color: rgba(215, 0, 21, 1); margin-bottom: 0;">
+🗑️ Clear All Cached Data
+</button>
+</div>
 </div>
 </aside>
 <main class="main-viewer" id="pdf-viewer">
@@ -826,7 +831,7 @@ toggleText.textContent = '⌃ Show Controls';
 }
 });
 }
-function handlePdfUpload(e) {
+async function handlePdfUpload(e) {
 const file = e.target.files[0];
 if (!file) return;
 document.getElementById('pdf-file-name').textContent = file.name;
@@ -836,6 +841,14 @@ pageViewports = {};
 currentUserPage = null;
 currentAudioPage = null;
 if (intersectionObserver) intersectionObserver.disconnect();
+
+// Save to IndexedDB for offline access
+try {
+await saveFileToIndexedDB('pdf', file);
+} catch (err) {
+console.error('Failed to save PDF to IndexedDB:', err);
+}
+
 const fileReader = new FileReader();
 fileReader.onload = function() {
 const typedarray = new Uint8Array(this.result);
@@ -852,10 +865,18 @@ console.error('PDF Load Error:', err);
 };
 fileReader.readAsArrayBuffer(file);
 }
-function handleMp3Upload(e) {
+async function handleMp3Upload(e) {
 const file = e.target.files[0];
 if (!file) return;
 document.getElementById('mp3-file-name').textContent = file.name;
+
+// Save to IndexedDB for offline access
+try {
+await saveFileToIndexedDB('mp3', file);
+} catch (err) {
+console.error('Failed to save MP3 to IndexedDB:', err);
+}
+
 if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
 URL.revokeObjectURL(audioPlayer.src);
 }
@@ -864,10 +885,18 @@ audioPlayer.src = url;
 fileTracker.mp3 = true;
 checkAllFilesLoaded();
 }
-function handleJsonUpload(e) {
+async function handleJsonUpload(e) {
 const file = e.target.files[0];
 if (!file) return;
 document.getElementById('json-file-name').textContent = file.name;
+
+// Save to IndexedDB for offline access
+try {
+await saveFileToIndexedDB('json', file);
+} catch (err) {
+console.error('Failed to save JSON to IndexedDB:', err);
+}
+
 const fileReader = new FileReader();
 fileReader.onload = function() {
 try {
@@ -1077,6 +1106,200 @@ console.log('Orientation changed');
 });
 console.log('✅ PDF Audio Player loaded with highlighter toggle!');
 
+// ========================================
+// IndexedDB Storage for Offline Support
+// ========================================
+
+const DB_NAME = 'pdfAudioPlayerDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'userFiles';
+
+// Open or create IndexedDB
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onerror = () => {
+      console.error('❌ IndexedDB failed to open:', request.error);
+      reject(request.error);
+    };
+
+    request.onsuccess = () => {
+      console.log('✅ IndexedDB opened successfully');
+      resolve(request.result);
+    };
+
+    request.onupgradeneeded = (event) => {
+      console.log('🔧 IndexedDB upgrade needed, creating object store...');
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'type' });
+        console.log('✅ Object store created');
+      }
+    };
+  });
+}
+
+// Save file to IndexedDB
+async function saveFileToIndexedDB(type, file) {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+
+    await store.put({
+      type: type,
+      file: file,
+      name: file.name,
+      size: file.size,
+      lastModified: file.lastModified
+    });
+
+    console.log(`✅ Saved ${type} file to IndexedDB:`, file.name);
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.error(`❌ Error saving ${type} to IndexedDB:`, err);
+    throw err;
+  }
+}
+
+// Load file from IndexedDB
+async function loadFileFromIndexedDB(type) {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+
+    return new Promise((resolve, reject) => {
+      const request = store.get(type);
+      request.onsuccess = () => {
+        if (request.result) {
+          console.log(`✅ Loaded ${type} from IndexedDB:`, request.result.name);
+          resolve(request.result);
+        } else {
+          resolve(null);
+        }
+      };
+      request.onerror = () => reject(request.error);
+    });
+  } catch (err) {
+    console.error(`❌ Error loading ${type} from IndexedDB:`, err);
+    return null;
+  }
+}
+
+// Clear all data from IndexedDB
+async function clearAllIndexedDBData() {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+
+    await store.clear();
+    console.log('✅ All IndexedDB data cleared');
+
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.error('❌ Error clearing IndexedDB:', err);
+    throw err;
+  }
+}
+
+// Check storage usage
+async function checkStorageUsage() {
+  if ('storage' in navigator && 'estimate' in navigator.storage) {
+    const estimate = await navigator.storage.estimate();
+    const usedMB = (estimate.usage / 1024 / 1024).toFixed(2);
+    const quotaMB = (estimate.quota / 1024 / 1024).toFixed(2);
+    console.log(`💾 Storage: ${usedMB} MB used of ${quotaMB} MB available`);
+    return { used: usedMB, quota: quotaMB };
+  }
+  return null;
+}
+
+// Restore files from IndexedDB on app startup
+async function restoreFilesFromIndexedDB() {
+  console.log('🔄 Checking for cached files in IndexedDB...');
+
+  try {
+    // Restore PDF
+    const pdfData = await loadFileFromIndexedDB('pdf');
+    if (pdfData && pdfData.file) {
+      document.getElementById('pdf-file-name').textContent = pdfData.name;
+      viewerPlaceholder.style.display = 'none';
+      showStatus('Restoring PDF from cache...', true);
+
+      const fileReader = new FileReader();
+      fileReader.onload = function() {
+        const typedarray = new Uint8Array(this.result);
+        const loadingTask = pdfjsLib.getDocument(typedarray);
+        loadingTask.promise.then(pdf => {
+          pdfDoc = pdf;
+          fileTracker.pdf = true;
+          pdfContainer.innerHTML = '';
+          renderAllPages();
+          console.log('✅ PDF restored from cache');
+        }).catch(err => {
+          showStatus('Error loading cached PDF: ' + err.message, false, true);
+          console.error('PDF Load Error:', err);
+        });
+      };
+      fileReader.readAsArrayBuffer(pdfData.file);
+    }
+
+    // Restore MP3
+    const mp3Data = await loadFileFromIndexedDB('mp3');
+    if (mp3Data && mp3Data.file) {
+      document.getElementById('mp3-file-name').textContent = mp3Data.name;
+
+      if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
+        URL.revokeObjectURL(audioPlayer.src);
+      }
+      const url = URL.createObjectURL(mp3Data.file);
+      audioPlayer.src = url;
+      fileTracker.mp3 = true;
+      console.log('✅ MP3 restored from cache');
+      checkAllFilesLoaded();
+    }
+
+    // Restore JSON
+    const jsonData = await loadFileFromIndexedDB('json');
+    if (jsonData && jsonData.file) {
+      document.getElementById('json-file-name').textContent = jsonData.name;
+
+      const fileReader = new FileReader();
+      fileReader.onload = function() {
+        try {
+          const data = JSON.parse(this.result);
+          if (data && data.sentences && Array.isArray(data.sentences)) {
+            manifest = data.sentences;
+            fileTracker.json = true;
+            console.log('✅ JSON manifest restored from cache');
+            checkAllFilesLoaded();
+          } else {
+            console.warn('⚠️ Cached JSON has invalid format');
+          }
+        } catch (err) {
+          console.error('❌ Error parsing cached JSON:', err);
+        }
+      };
+      fileReader.readAsText(jsonData.file);
+    }
+
+    // Check storage usage
+    await checkStorageUsage();
+
+  } catch (err) {
+    console.error('❌ Error restoring files from IndexedDB:', err);
+  }
+}
+
 // Register Service Worker for PWA functionality
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -1131,6 +1354,72 @@ window.addEventListener('beforeinstallprompt', (e) => {
 window.addEventListener('appinstalled', () => {
   console.log('✅ PWA installed successfully!');
   deferredPrompt = null;
+});
+
+// Restore files from IndexedDB on page load
+window.addEventListener('load', () => {
+  restoreFilesFromIndexedDB();
+});
+
+// Reset data button handler
+document.getElementById('reset-data-button').addEventListener('click', async () => {
+  const confirmed = confirm('⚠️ This will delete all cached files (PDF, MP3, JSON). You will need to re-upload them to use the app offline.\n\nAre you sure you want to continue?');
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    showStatus('Clearing all cached data...', true, false);
+
+    // Clear IndexedDB
+    await clearAllIndexedDBData();
+
+    // Clear service worker cache
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map(name => caches.delete(name)));
+      console.log('✅ Service Worker caches cleared');
+    }
+
+    // Reset UI
+    document.getElementById('pdf-file-name').textContent = 'No file selected';
+    document.getElementById('mp3-file-name').textContent = 'No file selected';
+    document.getElementById('json-file-name').textContent = 'No file selected';
+
+    // Reset application state
+    pdfDoc = null;
+    manifest = null;
+    fileTracker = { pdf: false, mp3: false, json: false };
+    currentAudioPage = null;
+    currentUserPage = null;
+    pageViewports = {};
+
+    // Clear PDF viewer
+    pdfContainer.innerHTML = '';
+    viewerPlaceholder.style.display = 'block';
+
+    // Clear audio player
+    if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
+      URL.revokeObjectURL(audioPlayer.src);
+    }
+    audioPlayer.src = '';
+    audioPlayer.disabled = true;
+
+    // Update displays
+    updatePageDisplays();
+
+    showStatus('✅ All cached data cleared successfully!', false, false);
+    setTimeout(() => {
+      statusBox.style.display = 'none';
+    }, 3000);
+
+    console.log('✅ All data reset complete');
+
+  } catch (err) {
+    console.error('❌ Error clearing data:', err);
+    showStatus('Error clearing data: ' + err.message, false, true);
+  }
 });
 </script>
 </body>
