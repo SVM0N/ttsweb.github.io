@@ -18,6 +18,57 @@ from .tts_utils import wav_to_mp3_bytes, safe_name, extract_chapters_from_epub
 from .manifest import create_manifest, save_manifest
 
 
+def _synthesize_with_backend(tts, elements, tts_model, voice, speed=1.0, **kwargs):
+    """Route synthesis call based on backend type.
+
+    Args:
+        tts: TTS backend instance
+        elements: List of text elements to synthesize
+        tts_model: TTS model name
+        voice: Voice/speaker to use
+        speed: Speech speed (for Kokoro only)
+        **kwargs: Additional model-specific parameters
+
+    Returns:
+        Tuple of (wav_bytes, timeline)
+    """
+    if tts_model.startswith("kokoro"):
+        return tts.synthesize_text_to_wav(
+            elements, voice=voice, speed=speed, **kwargs
+        )
+    elif tts_model == "maya1":
+        return tts.synthesize_text_to_wav(
+            elements, voice=voice, **kwargs
+        )
+    else:  # Silero
+        return tts.synthesize_text_to_wav(
+            elements, speaker=voice, **kwargs
+        )
+
+
+def _save_audio(wav_bytes, out_base, out_format):
+    """Save audio to file in specified format.
+
+    Args:
+        wav_bytes: WAV audio data as bytes
+        out_base: Base path for output file (without extension)
+        out_format: Output format ("wav" or "mp3")
+
+    Returns:
+        Path to saved audio file
+    """
+    if out_format.lower() == "mp3":
+        mp3 = wav_to_mp3_bytes(wav_bytes)
+        audio_path = str(out_base) + ".mp3"
+        with open(audio_path, "wb") as f:
+            f.write(mp3)
+    else:
+        audio_path = str(out_base) + ".wav"
+        with open(audio_path, "wb") as f:
+            f.write(wav_bytes)
+    return audio_path
+
+
 def synth_string(
     tts,
     config,
@@ -25,9 +76,7 @@ def synth_string(
     voice: Optional[str] = None,
     speed: float = 1.0,
     out_format: str = "wav",
-    basename: str = "tts_text",
     tts_model: str = "kokoro_1.0",
-    enable_mp3_output: bool = True,
     **kwargs
 ) -> Tuple[str, str]:
     """Synthesize a text string to audio.
@@ -39,16 +88,12 @@ def synth_string(
         voice: Voice/speaker to use (None for default)
         speed: Speech speed (Kokoro only)
         out_format: Output format ("wav" or "mp3")
-        basename: Base name for output files
         tts_model: TTS model name
-        enable_mp3_output: Whether MP3 output is enabled
         **kwargs: Additional model-specific parameters
 
     Returns:
         Tuple of (audio_path, manifest_path)
     """
-    if out_format == "mp3" and not enable_mp3_output:
-        raise ValueError("MP3 output is disabled. Set ENABLE_MP3_OUTPUT=True in configuration.")
 
     voice = voice or tts.get_default_voice()
 
@@ -57,32 +102,14 @@ def synth_string(
         "metadata": {"page_number": 1, "source": "string", "points": None}
     }]
 
-    # Synthesize based on model type
-    if tts_model.startswith("kokoro"):
-        wav_bytes, timeline = tts.synthesize_text_to_wav(
-            elements, voice=voice, speed=speed, **kwargs
-        )
-    elif tts_model == "maya1":
-        wav_bytes, timeline = tts.synthesize_text_to_wav(
-            elements, voice=voice, **kwargs
-        )
-    else:  # Silero
-        wav_bytes, timeline = tts.synthesize_text_to_wav(
-            elements, speaker=voice, **kwargs
-        )
+    # Synthesize
+    wav_bytes, timeline = _synthesize_with_backend(
+        tts, elements, tts_model, voice, speed, **kwargs
+    )
 
     # Save audio
-    out_base = config.get_output_path(basename)
-
-    if out_format.lower() == "mp3":
-        mp3 = wav_to_mp3_bytes(wav_bytes)
-        audio_path = str(out_base) + ".mp3"
-        with open(audio_path, "wb") as f:
-            f.write(mp3)
-    else:
-        audio_path = str(out_base) + ".wav"
-        with open(audio_path, "wb") as f:
-            f.write(wav_bytes)
+    out_base = config.get_output_path("tts_text")
+    audio_path = _save_audio(wav_bytes, out_base, out_format)
 
     # Save manifest
     manifest_path = str(out_base) + "_manifest.json"
@@ -103,7 +130,6 @@ def synth_pdf(
     basename: Optional[str] = None,
     pages: Optional[List[int]] = None,
     tts_model: str = "kokoro_1.0",
-    enable_mp3_output: bool = True,
     **kwargs
 ) -> Tuple[str, str]:
     """Synthesize a PDF to audio.
@@ -119,7 +145,6 @@ def synth_pdf(
         basename: Base name for output files (None for auto from filename)
         pages: List of page numbers to extract (None for all pages)
         tts_model: TTS model name
-        enable_mp3_output: Whether MP3 output is enabled
         **kwargs: Additional model-specific parameters
 
     Returns:
@@ -127,9 +152,6 @@ def synth_pdf(
     """
     if pdf_extractor is None:
         raise ValueError("No PDF extractor configured. Set PDF_EXTRACTOR in configuration.")
-
-    if out_format == "mp3" and not enable_mp3_output:
-        raise ValueError("MP3 output is disabled. Set ENABLE_MP3_OUTPUT=True in configuration.")
 
     voice = voice or tts.get_default_voice()
 
@@ -145,32 +167,14 @@ def synth_pdf(
     # Extract text
     elements = pdf_extractor.extract(pdf_bytes, pages=pages)
 
-    # Synthesize based on model type
-    if tts_model.startswith("kokoro"):
-        wav_bytes, timeline = tts.synthesize_text_to_wav(
-            elements, voice=voice, speed=speed, **kwargs
-        )
-    elif tts_model == "maya1":
-        wav_bytes, timeline = tts.synthesize_text_to_wav(
-            elements, voice=voice, **kwargs
-        )
-    else:  # Silero
-        wav_bytes, timeline = tts.synthesize_text_to_wav(
-            elements, speaker=voice, **kwargs
-        )
+    # Synthesize
+    wav_bytes, timeline = _synthesize_with_backend(
+        tts, elements, tts_model, voice, speed, **kwargs
+    )
 
     # Save audio
     out_base = config.get_output_path(f"{basename or stem}_tts")
-
-    if out_format.lower() == "mp3":
-        mp3 = wav_to_mp3_bytes(wav_bytes)
-        audio_path = str(out_base) + ".mp3"
-        with open(audio_path, "wb") as f:
-            f.write(mp3)
-    else:
-        audio_path = str(out_base) + ".wav"
-        with open(audio_path, "wb") as f:
-            f.write(wav_bytes)
+    audio_path = _save_audio(wav_bytes, out_base, out_format)
 
     # Save manifest
     manifest_path = str(out_base) + "_manifest.json"
@@ -189,7 +193,6 @@ def synth_epub(
     per_chapter_format: str = "wav",
     zip_name: Optional[str] = None,
     tts_model: str = "kokoro_1.0",
-    enable_mp3_output: bool = True,
     **kwargs
 ) -> str:
     """Synthesize an EPUB to per-chapter audio files in a ZIP.
@@ -203,14 +206,11 @@ def synth_epub(
         per_chapter_format: Output format per chapter ("wav" or "mp3")
         zip_name: Name for output ZIP file (None for auto from filename)
         tts_model: TTS model name
-        enable_mp3_output: Whether MP3 output is enabled
         **kwargs: Additional model-specific parameters
 
     Returns:
         Path to output ZIP file
     """
-    if per_chapter_format == "mp3" and not enable_mp3_output:
-        raise ValueError("MP3 output is disabled. Set ENABLE_MP3_OUTPUT=True in configuration.")
 
     voice = voice or tts.get_default_voice()
 
@@ -243,19 +243,10 @@ def synth_epub(
                 }
             }]
 
-            # Synthesize chapter based on model type
-            if tts_model.startswith("kokoro"):
-                wav_bytes, timeline = tts.synthesize_text_to_wav(
-                    chapter_elements, voice=voice, speed=speed, **kwargs
-                )
-            elif tts_model == "maya1":
-                wav_bytes, timeline = tts.synthesize_text_to_wav(
-                    chapter_elements, voice=voice, **kwargs
-                )
-            else:  # Silero
-                wav_bytes, timeline = tts.synthesize_text_to_wav(
-                    chapter_elements, speaker=voice, **kwargs
-                )
+            # Synthesize chapter
+            wav_bytes, timeline = _synthesize_with_backend(
+                tts, chapter_elements, tts_model, voice, speed, **kwargs
+            )
 
             # Add audio to ZIP
             if per_chapter_format.lower() == "mp3":

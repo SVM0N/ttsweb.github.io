@@ -20,7 +20,7 @@ def install_dependencies(
     tts_model,
     pdf_extractor=None,
     conversion_type="string",
-    enable_mp3_output=False
+    out_format="wav"
 ):
     """Install only the dependencies needed for the selected configuration.
 
@@ -28,7 +28,7 @@ def install_dependencies(
         tts_model: TTS model name ("kokoro_0.9", "kokoro_1.0", "maya1", "silero_v5")
         pdf_extractor: PDF extractor name ("unstructured", "pymupdf", "vision", "nougat", None)
         conversion_type: Type of conversion ("string", "pdf", "epub")
-        enable_mp3_output: Whether MP3 output is enabled
+        out_format: Output format ("wav" or "mp3")
     """
     print("="*60)
     print("INSTALLING DEPENDENCIES")
@@ -45,7 +45,7 @@ def install_dependencies(
             install_package(pkg)
 
     # Note about ffmpeg for MP3
-    if enable_mp3_output:
+    if out_format == "mp3":
         print("\n⚠️  NOTE: MP3 encoding requires ffmpeg to be installed on your system:")
         print("   - macOS: brew install ffmpeg")
         print("   - Linux: sudo apt-get install ffmpeg")
