@@ -65,7 +65,20 @@ class TTSConfig:
             if torch.cuda.is_available():
                 selected = "cuda"
             elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-                selected = "mps"
+                # Check if we're on Apple Silicon
+                import platform
+                is_apple_silicon = (
+                    platform.system() == "Darwin" and
+                    platform.machine() == "arm64"
+                )
+
+                if is_apple_silicon:
+                    # Force CPU on Apple Silicon due to MPS compatibility issues with Kokoro TTS
+                    selected = "cpu"
+                    print("⚠️  Apple Silicon detected: Using CPU instead of MPS")
+                    print("   (Kokoro TTS has compatibility issues with MPS)")
+                else:
+                    selected = "mps"
             else:
                 selected = "cpu"
         elif isinstance(device, torch.device):
