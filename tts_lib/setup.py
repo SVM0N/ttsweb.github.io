@@ -38,13 +38,21 @@ def install_dependencies(
 
     # Core dependencies (always needed)
     print("\n📦 Installing core dependencies...")
-    core_packages = ["torch", "soundfile", "numpy"]
+    core_packages = ["torch", "soundfile", "numpy", "ebooklib", "pydub"]
     for pkg in core_packages:
         try:
             __import__(pkg.replace("-", "_"))
             print(f"✓ {pkg} already installed")
         except ImportError:
             install_package(pkg)
+
+    # Note about ffmpeg for MP3
+    if enable_mp3_output:
+        print("\n⚠️  NOTE: MP3 encoding requires ffmpeg to be installed on your system:")
+        print("   - macOS: brew install ffmpeg")
+        print("   - Linux: sudo apt-get install ffmpeg")
+        print("   - Windows: Download from https://ffmpeg.org/")
+        print("   - Colab: ffmpeg is pre-installed ✓")
 
     # TTS model dependencies
     print("\n🎤 Installing TTS model dependencies...")
@@ -129,27 +137,8 @@ def install_dependencies(
                 except ImportError:
                     install_package(pkg)
 
-    # EPUB dependencies
-    if enable_epub_input:
-        print("\n📚 Installing EPUB dependencies...")
-        try:
-            __import__("ebooklib")
-            print(f"✓ ebooklib already installed")
-        except ImportError:
-            install_package("ebooklib")
-
-    # MP3 output dependencies
-    if enable_mp3_output:
-        print("\n🎵 Installing MP3 output dependencies...")
-        try:
-            __import__("pydub")
-            print(f"✓ pydub already installed")
-        except ImportError:
-            install_package("pydub")
-        print("\n⚠️  NOTE: MP3 encoding requires ffmpeg to be installed on your system:")
-        print("   - macOS: brew install ffmpeg")
-        print("   - Linux: sudo apt-get install ffmpeg")
-        print("   - Windows: Download from https://ffmpeg.org/")
+    # EPUB and MP3 dependencies are now part of core dependencies
+    # (installed at the beginning)
 
     print("\n" + "="*60)
     print("✓ ALL DEPENDENCIES INSTALLED")

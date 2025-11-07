@@ -12,8 +12,6 @@ import re
 import zipfile
 from pathlib import Path
 from typing import List, Tuple
-from ebooklib import epub
-from pydub import AudioSegment
 
 
 # Sentence splitting pattern - keeps chunks small to avoid phoneme truncation
@@ -30,6 +28,9 @@ def extract_chapters_from_epub(file_like: io.BytesIO) -> List[Tuple[str, str]]:
     Returns:
         List of (title, text) tuples for each chapter
     """
+    # Lazy import - only import when function is called
+    from ebooklib import epub
+
     bk = epub.read_epub(file_like)
     chapters = []
 
@@ -116,6 +117,9 @@ def wav_to_mp3_bytes(wav_bytes: bytes, bitrate: str = "128k") -> bytes:
     Returns:
         MP3 audio data as bytes
     """
+    # Lazy import - only import when function is called
+    from pydub import AudioSegment
+
     audio = AudioSegment.from_file(io.BytesIO(wav_bytes), format="wav")
     out = io.BytesIO()
     audio.export(out, format="mp3", bitrate=bitrate)
