@@ -1,0 +1,47 @@
+# Media files
+*.pdf
+*.mp3
+*.wav
+*.epub
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Model caches
+*.pt
+*.onnx
+*.bin
+models/
+cache/
+
+# Output files
+output/
+generated/
+*_tts.mp3
+*_tts.wav
+*_manifest.json
+
+# Test/example files
+test_*
+example_*
+personal_*
+sample_*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# But keep README files
+!README.md
+!*/README.md
