@@ -7,6 +7,19 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PDF Audio Player">
 <title>PDF Audio Player</title>
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+<!-- Theme color for address bar -->
+<meta name="theme-color" content="#f5f5f7">
+<!-- iOS specific meta tags -->
+<meta name="apple-touch-fullscreen" content="yes">
+<link rel="apple-touch-icon" href="icons/icon-192x192.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192x192.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-192x192.png">
+<!-- Standard favicon -->
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512x512.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js"></script>
 <style>
@@ -1063,6 +1076,62 @@ console.log('Orientation changed');
 }, 100);
 });
 console.log('✅ PDF Audio Player loaded with highlighter toggle!');
+
+// Register Service Worker for PWA functionality
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(registration => {
+        console.log('✅ Service Worker registered successfully:', registration.scope);
+
+        // Check for updates periodically
+        setInterval(() => {
+          registration.update();
+        }, 60000); // Check every minute
+
+        // Handle service worker updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New service worker available, show update notification
+              if (confirm('New version available! Reload to update?')) {
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                window.location.reload();
+              }
+            }
+          });
+        });
+      })
+      .catch(error => {
+        console.log('❌ Service Worker registration failed:', error);
+      });
+
+    // Handle service worker controller change (new SW activated)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      console.log('🔄 Service Worker controller changed, reloading page...');
+      window.location.reload();
+    });
+  });
+}
+
+// Add to home screen prompt (for supported browsers)
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  console.log('💾 Install prompt available');
+  // Prevent the mini-infobar from appearing on mobile
+  e.preventDefault();
+  // Stash the event so it can be triggered later
+  deferredPrompt = e;
+
+  // Optionally, show your own install button
+  // You could add a button in the UI here to trigger installation
+});
+
+window.addEventListener('appinstalled', () => {
+  console.log('✅ PWA installed successfully!');
+  deferredPrompt = null;
+});
 </script>
 </body>
 </html>
