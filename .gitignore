@@ -1,1 +1,42 @@
+# macOS
 .DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+.conda/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Model caches (optional - uncomment if you don't want to track large models)
+# .cache/
+# *.pth
+# *.bin
+# *.safetensors
+
+# Output files (generated audio, manifests)
+# files/*.mp3
+# files/*.wav
+# files/*.zip
+# files/*_manifest.json
