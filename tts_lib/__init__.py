@@ -10,15 +10,8 @@ This package provides:
 
 __version__ = "1.0.0"
 
-# Make key functions easily accessible
-from .synthesis import synth_string, synth_pdf, synth_epub
-from .setup import install_dependencies
-from .init_system import initialize_system
-
-__all__ = [
-    'synth_string',
-    'synth_pdf',
-    'synth_epub',
-    'install_dependencies',
-    'initialize_system',
-]
+# Don't import here to avoid circular imports
+# Users should import directly from submodules:
+# from tts_lib.setup import install_dependencies
+# from tts_lib.init_system import initialize_system
+# from tts_lib.synthesis import synth_string, synth_pdf, synth_epub

@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Union, Tuple, Optional
 from functools import lru_cache
 
-from tts_utils import split_sentences_keep_delim
+from .tts_utils import split_sentences_keep_delim
 
 
 class TTSBackend(ABC):
