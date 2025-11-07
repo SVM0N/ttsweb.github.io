@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdf-audio-player-v2';
+const CACHE_NAME = 'pdf-audio-player-v3';
 const urlsToCache = [
   './',
   './index.html',
@@ -39,6 +39,11 @@ self.addEventListener('activate', event => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', event => {
+  // Allow blob: and data: URLs to pass through (for local file uploads)
+  if (event.request.url.startsWith('blob:') || event.request.url.startsWith('data:')) {
+    return;
+  }
+
   // Skip cross-origin requests
   if (!event.request.url.startsWith(self.location.origin) &&
       !event.request.url.startsWith('https://cdnjs.cloudflare.com')) {
