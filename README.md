@@ -3,7 +3,6 @@
 Convert PDFs and EPUBs into audiobooks with synchronized text highlighting using state-of-the-art text-to-speech models.
 
 ## 🎯 What This Does
-
 This project provides Jupyter notebooks that:
 1. Extract text from PDFs/EPUBs with precise coordinate tracking
 2. Generate high-quality speech audio using AI TTS models
@@ -195,7 +194,195 @@ wav_bytes, timeline = tts.synthesize_text_to_wav(elements, voice="af_heart")
 
 ---
 
+## 🎬 Output Files
+
+Each notebook generates two files:
+
+### 1. Audio File
+- **Format:** MP3 or WAV (configurable)
+- **Sample Rate:** 24kHz (F5-MLX) or 24kHz (Kokoro)
+- **Naming:** `{filename}_tts.mp3` or `{filename}_tts.wav`
+
+### 2. Manifest File
+- **Format:** JSON
+- **Naming:** `{filename}_tts_manifest.json`
+- **Contains:**
+  - Sentence-level timestamps
+  - Text content for each segment
+  - Coordinate data for highlighting (page number, bounding boxes)
+
+**Example manifest structure:**
+```json
+{
+  "audioUrl": "document_tts.mp3",
+  "sentences": [
+    {
+      "i": 0,
+      "start": 0.0,
+      "end": 2.5,
+      "text": "This is the first sentence.",
+      "location": {
+        "page_number": 1,
+        "points": [[x0,y0], [x1,y1], [x2,y2], [x3,y3]]
+      }
+    }
+  ]
+}
+```
+
+## 🌐 Using the Web Player
+
+1. **Generate your files** using any notebook above
+
+2. **Upload to the web player** at: **https://svm0n.github.io/ttsweb.github.io/**
+
+3. **Upload both files:**
+   - Your PDF file
+   - The audio file (MP3/WAV)
+   - The manifest JSON file
+
+4. **Play and enjoy** synchronized audio with text highlighting!
+
+The web player features:
+- PDF rendering with synchronized highlighting
+- Audio playback controls (play/pause, seek, speed control)
+- Click on text to jump to that audio position
+- Dark mode support
+- Mobile-friendly responsive design
+
+## 🛠️ Customization
+
+### Voice Selection (Kokoro models)
+
+**Kokoro v0.9.x (TTS_Kokoro_Local.ipynb):**
+- Available voices: `af_heart` , `af_bella`, `af_sarah`, `am_adam`, `am_michael`, and more
+
+**Kokoro v1.0 (TTS_Kokoro_v.1.0_Local.ipynb):**
+- 54 voices across 8 languages (see full list in section 2 above)
+- US, British, French, Japanese, Korean, Chinese voices available
+
+```python
+VOICE = "af_heart"  # Change to any available voice
+```
+
+### Voice Cloning (F5-TTS-MLX)
+Provide reference audio for zero-shot voice cloning:
+
+```python
+REF_AUDIO = "reference.wav"  # 5-10s mono WAV at 24kHz
+REF_TEXT = "This is what the speaker says in the reference audio."
+```
+
+Convert your audio:
+```bash
+ffmpeg -i input.wav -ac 1 -ar 24000 -sample_fmt s16 -t 10 reference.wav
+```
+
+### Output Format
+```python
+FORMAT = "mp3"  # or "wav"
+```
+
+### Speech Speed
+```python
+SPEED = 1.0  # 0.5 = half speed, 2.0 = double speed
+```
+
+## 🗑️ Managing Model Caches
+
+TTS models are cached locally to improve performance. Each notebook includes a cache management section at the end where you can:
+
+- **View cache locations and sizes** for:
+  - HuggingFace models (`~/.cache/huggingface/`)
+  - PyTorch models (`~/.cache/torch/`)
+  - Pip packages
+  - Model-specific caches
+
+- **Delete cached models** to free up storage:
+  - Individual model deletion
+  - Bulk cache cleanup
+  - Environment-specific cleanup
+
+**Typical cache sizes:**
+- Kokoro models: ~500MB - 1GB
+- F5-TTS-MLX models: ~300MB - 500MB
+- Detectron2 models: ~200MB - 400MB
+- Nougat models: ~1GB - 2GB
+
+Each local notebook includes an optional cleanup section at the end to help manage these caches.
+
+## 📋 Quick Decision Guide
+
+**I want the easiest, most flexible option:**
+→ Use **TTS.ipynb** ⭐ (Unified notebook - recommended for everyone)
+
+**I need Russian language TTS:**
+→ Use **TTS.ipynb** with Silero v5 backend
+
+**I have Apple Silicon (M1/M2/M3/M4):**
+→ Use **TTS_F5_MLX.ipynb** (archived/TTS_F5_MLX.ipynb)
+
+**I need maximum speed and my PDF has text:**
+→ Use **TTS.ipynb** with PyMuPDF extractor
+
+**I have a scanned PDF (no text layer):**
+→ Use **TTS.ipynb** with Vision/Nougat extractor
+
+**I have an academic paper with equations:**
+→ Use **TTS.ipynb** with Nougat extractor
+
+**I prefer the old standalone notebooks:**
+→ Check the `archived/` folder for legacy notebooks
+
+## 🔧 Troubleshooting
+
+### "NotImplementedError: aten::angle not implemented for MPS"
+- Add this before imports: `os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'`
+- Restart your Jupyter kernel
+
+### "Highlights are off by 1-2 lines"
+- This has been fixed in the latest version
+- Make sure you're using the updated notebooks
+
+### "Out of memory"
+- Use **TTS_Kokoro_PyMuPDF.ipynb** (lowest memory usage)
+- Or process shorter documents
+- Or add more RAM/swap space
+
+### "PDF extraction failed"
+- If using PyMuPDF: Your PDF might be scanned → Use Vision or Nougat
+- If using Vision: Check macOS version compatibility
+- If using Nougat: Ensure GPU is available and CUDA installed
+
+## 📄 License
+
+   This project is licensed for non-commercial use only.
+   For commercial licensing, please contact SVM0N on GitHub.
+
+## 🙏 Credits
+
+This project uses:
+- [Kokoro TTS](https://github.com/remsky/Kokoro-82M) - High-quality text-to-speech
+- [F5-TTS-MLX](https://github.com/lucasnewman/f5-tts-mlx) - Apple Silicon optimized TTS
+- [Unstructured.io](https://github.com/Unstructured-IO/unstructured) - Document parsing
+- [Detectron2](https://github.com/facebookresearch/detectron2) - Layout detection
+- [PyMuPDF](https://github.com/pymupdf/PyMuPDF) - Fast PDF processing
+- [Nougat](https://github.com/facebookresearch/nougat) - Academic document OCR
+- [PDF.js](https://mozilla.github.io/pdf.js/) - Web PDF rendering
+
+---
+
+**Made with ❤️ for accessible reading**
+
+---
+
+<details>
+<summary>
+
 ### **Legacy Notebooks**
+
+
+</summary>
 
 The following notebooks have been moved to the `archived/` folder and are still available for backwards compatibility:
 
@@ -332,7 +519,7 @@ The following notebooks have been moved to the `archived/` folder and are still 
 
 ---
 
-### **6. TTS_Silero_v5_Local.ipynb** 🇷🇺 **FOR RUSSIAN LANGUAGE**
+### **6. TTS_Silero_v5_Local.ipynb** **FOR RUSSIAN LANGUAGE**
 
 **When to use:**
 - Need Russian language text-to-speech
@@ -378,184 +565,5 @@ The following notebooks have been moved to the `archived/` folder and are still 
 - Large model downloads
 - Overkill for simple text
 
----
 
-## 🎬 Output Files
-
-Each notebook generates two files:
-
-### 1. Audio File
-- **Format:** MP3 or WAV (configurable)
-- **Sample Rate:** 24kHz (F5-MLX) or 24kHz (Kokoro)
-- **Naming:** `{filename}_tts.mp3` or `{filename}_tts.wav`
-
-### 2. Manifest File
-- **Format:** JSON
-- **Naming:** `{filename}_tts_manifest.json`
-- **Contains:**
-  - Sentence-level timestamps
-  - Text content for each segment
-  - Coordinate data for highlighting (page number, bounding boxes)
-
-**Example manifest structure:**
-```json
-{
-  "audioUrl": "document_tts.mp3",
-  "sentences": [
-    {
-      "i": 0,
-      "start": 0.0,
-      "end": 2.5,
-      "text": "This is the first sentence.",
-      "location": {
-        "page_number": 1,
-        "points": [[x0,y0], [x1,y1], [x2,y2], [x3,y3]]
-      }
-    }
-  ]
-}
-```
-
-## 🌐 Using the Web Player
-
-1. **Generate your files** using any notebook above
-
-2. **Upload to the web player** at: **https://svm0n.github.io/ttsweb.github.io/**
-
-3. **Upload both files:**
-   - Your PDF file
-   - The audio file (MP3/WAV)
-   - The manifest JSON file
-
-4. **Play and enjoy** synchronized audio with text highlighting!
-
-The web player features:
-- PDF rendering with synchronized highlighting
-- Audio playback controls (play/pause, seek, speed control)
-- Click on text to jump to that audio position
-- Dark mode support
-- Mobile-friendly responsive design
-
-## 🛠️ Customization
-
-### Voice Selection (Kokoro models)
-
-**Kokoro v0.9.x (TTS_Kokoro_Local.ipynb):**
-- Available voices: `af_heart`, `af_bella`, `af_sarah`, `am_adam`, `am_michael`, and more
-
-**Kokoro v1.0 (TTS_Kokoro_v.1.0_Local.ipynb):**
-- 54 voices across 8 languages (see full list in section 2 above)
-- US, British, French, Japanese, Korean, Chinese voices available
-
-```python
-VOICE = "af_heart"  # Change to any available voice
-```
-
-### Voice Cloning (F5-TTS-MLX)
-Provide reference audio for zero-shot voice cloning:
-
-```python
-REF_AUDIO = "reference.wav"  # 5-10s mono WAV at 24kHz
-REF_TEXT = "This is what the speaker says in the reference audio."
-```
-
-Convert your audio:
-```bash
-ffmpeg -i input.wav -ac 1 -ar 24000 -sample_fmt s16 -t 10 reference.wav
-```
-
-### Output Format
-```python
-FORMAT = "mp3"  # or "wav"
-```
-
-### Speech Speed
-```python
-SPEED = 1.0  # 0.5 = half speed, 2.0 = double speed
-```
-
-## 🗑️ Managing Model Caches
-
-TTS models are cached locally to improve performance. Each notebook includes a cache management section at the end where you can:
-
-- **View cache locations and sizes** for:
-  - HuggingFace models (`~/.cache/huggingface/`)
-  - PyTorch models (`~/.cache/torch/`)
-  - Pip packages
-  - Model-specific caches
-
-- **Delete cached models** to free up storage:
-  - Individual model deletion
-  - Bulk cache cleanup
-  - Environment-specific cleanup
-
-**Typical cache sizes:**
-- Kokoro models: ~500MB - 1GB
-- F5-TTS-MLX models: ~300MB - 500MB
-- Detectron2 models: ~200MB - 400MB
-- Nougat models: ~1GB - 2GB
-
-Each local notebook includes an optional cleanup section at the end to help manage these caches.
-
-## 📋 Quick Decision Guide
-
-**I want the easiest, most flexible option:**
-→ Use **TTS.ipynb** ⭐ (Unified notebook - recommended for everyone)
-
-**I need Russian language TTS:**
-→ Use **TTS.ipynb** with Silero v5 backend
-
-**I have Apple Silicon (M1/M2/M3/M4):**
-→ Use **TTS_F5_MLX.ipynb** (archived/TTS_F5_MLX.ipynb)
-
-**I need maximum speed and my PDF has text:**
-→ Use **TTS.ipynb** with PyMuPDF extractor
-
-**I have a scanned PDF (no text layer):**
-→ Use **TTS.ipynb** with Vision/Nougat extractor
-
-**I have an academic paper with equations:**
-→ Use **TTS.ipynb** with Nougat extractor
-
-**I prefer the old standalone notebooks:**
-→ Check the `archived/` folder for legacy notebooks
-
-## 🔧 Troubleshooting
-
-### "NotImplementedError: aten::angle not implemented for MPS"
-- Add this before imports: `os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'`
-- Restart your Jupyter kernel
-
-### "Highlights are off by 1-2 lines"
-- This has been fixed in the latest version
-- Make sure you're using the updated notebooks
-
-### "Out of memory"
-- Use **TTS_Kokoro_PyMuPDF.ipynb** (lowest memory usage)
-- Or process shorter documents
-- Or add more RAM/swap space
-
-### "PDF extraction failed"
-- If using PyMuPDF: Your PDF might be scanned → Use Vision or Nougat
-- If using Vision: Check macOS version compatibility
-- If using Nougat: Ensure GPU is available and CUDA installed
-
-## 📄 License
-
-   This project is licensed for non-commercial use only.
-   For commercial licensing, please contact SVM0N on GitHub.
-
-## 🙏 Credits
-
-This project uses:
-- [Kokoro TTS](https://github.com/remsky/Kokoro-82M) - High-quality text-to-speech
-- [F5-TTS-MLX](https://github.com/lucasnewman/f5-tts-mlx) - Apple Silicon optimized TTS
-- [Unstructured.io](https://github.com/Unstructured-IO/unstructured) - Document parsing
-- [Detectron2](https://github.com/facebookresearch/detectron2) - Layout detection
-- [PyMuPDF](https://github.com/pymupdf/PyMuPDF) - Fast PDF processing
-- [Nougat](https://github.com/facebookresearch/nougat) - Academic document OCR
-- [PDF.js](https://mozilla.github.io/pdf.js/) - Web PDF rendering
-
----
-
-**Made with ❤️ for accessible reading**
+</details>
