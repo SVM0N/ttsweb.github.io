@@ -602,6 +602,9 @@ user-select: text;
 </div>
 <div style="margin-bottom: 12px;" id="collapsed-audio">
 <audio id="audio-player" controls disabled preload="auto"></audio>
+<button class="toggle-button" id="force-load-audio" style="display: none; margin-top: 8px; padding: 8px; font-size: 13px; background: linear-gradient(135deg, rgba(52, 199, 89, 0.15) 0%, rgba(52, 199, 89, 0.1) 100%); color: rgba(30, 132, 73, 1);">
+🔄 Force Load Audio
+</button>
 </div>
 <div class="collapsible-content">
 <div class="header-with-toggle">
@@ -745,6 +748,8 @@ const maxZoom = 200;
 const zoomInButton = document.getElementById('zoom-in');
 const zoomOutButton = document.getElementById('zoom-out');
 const zoomValueDisplay = document.getElementById('zoom-value');
+const forceLoadAudioButton = document.getElementById('force-load-audio');
+let currentMp3File = null; // Store the current MP3 file for manual reloading
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 const darkModeToggle = document.getElementById('dark-mode-toggle');
 const themeIcon = document.getElementById('theme-icon');
@@ -932,6 +937,9 @@ if (!audioPlayer.hasAttribute('data-listeners-added')) {
   audioPlayer.addEventListener('abort', () => console.warn('⚠️ Audio: abort'));
 }
 
+// Store file for manual reload
+currentMp3File = file;
+
 // Fallback: If audio doesn't start loading within 3 seconds, try data URL
 setTimeout(async () => {
   if (audioPlayer.readyState === 0 || audioPlayer.networkState === 3) {
@@ -941,8 +949,17 @@ setTimeout(async () => {
       audioPlayer.src = dataURL;
       audioPlayer.load();
       console.log('✅ Switched to data URL for audio');
+
+      // If still not loading after 2 more seconds, show manual button
+      setTimeout(() => {
+        if (audioPlayer.readyState === 0) {
+          console.warn('⚠️ Audio still not loading, showing manual load button');
+          forceLoadAudioButton.style.display = 'block';
+        }
+      }, 2000);
     } catch (err) {
       console.error('❌ Data URL fallback failed:', err);
+      forceLoadAudioButton.style.display = 'block';
     }
   }
 }, 3000);
@@ -1413,6 +1430,9 @@ async function restoreFilesFromIndexedDB() {
         isBlob: mp3Data.file instanceof Blob
       });
 
+      // Store file for manual reload
+      currentMp3File = mp3Data.file;
+
       // Use data URL for cached files (more reliable offline)
       console.log('🔄 Converting MP3 to data URL for offline compatibility...');
       try {
@@ -1432,6 +1452,14 @@ async function restoreFilesFromIndexedDB() {
         fileTracker.mp3 = true;
         console.log('✅ MP3 restored from cache with data URL');
         checkAllFilesLoaded();
+
+        // Show manual button if it doesn't load after 5 seconds
+        setTimeout(() => {
+          if (audioPlayer.readyState === 0) {
+            console.warn('⚠️ Audio not loading automatically, showing manual load button');
+            forceLoadAudioButton.style.display = 'block';
+          }
+        }, 5000);
       } catch (err) {
         console.error('❌ Failed to create data URL, falling back to blob:', err);
         // Fallback to blob URL
@@ -1440,6 +1468,7 @@ async function restoreFilesFromIndexedDB() {
         audioPlayer.load();
         fileTracker.mp3 = true;
         checkAllFilesLoaded();
+        forceLoadAudioButton.style.display = 'block';
       }
     }
 
@@ -1540,6 +1569,57 @@ async function loadMp3AsDataURL(file) {
     reader.readAsDataURL(file);
   });
 }
+
+// Force load audio button handler
+forceLoadAudioButton.addEventListener('click', async () => {
+  console.log('🔄 Manually forcing audio load...');
+  forceLoadAudioButton.textContent = '⏳ Loading...';
+  forceLoadAudioButton.disabled = true;
+
+  if (!currentMp3File) {
+    console.error('❌ No MP3 file available to load');
+    forceLoadAudioButton.textContent = '❌ No File Available';
+    return;
+  }
+
+  try {
+    // Try data URL approach
+    console.log('Converting to data URL...');
+    const dataURL = await loadMp3AsDataURL(currentMp3File);
+    console.log('✅ Data URL created, setting as audio source...');
+
+    audioPlayer.src = dataURL;
+    audioPlayer.load();
+
+    // Wait for it to load
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Timeout')), 10000);
+
+      audioPlayer.addEventListener('canplay', () => {
+        clearTimeout(timeout);
+        resolve();
+      }, { once: true });
+
+      audioPlayer.addEventListener('error', () => {
+        clearTimeout(timeout);
+        reject(audioPlayer.error);
+      }, { once: true });
+    });
+
+    console.log('✅ Audio loaded successfully!');
+    forceLoadAudioButton.style.display = 'none';
+    forceLoadAudioButton.disabled = false;
+    forceLoadAudioButton.textContent = '🔄 Force Load Audio';
+    showStatus('Audio loaded successfully!', false, false);
+    setTimeout(() => statusBox.style.display = 'none', 2000);
+
+  } catch (err) {
+    console.error('❌ Manual load failed:', err);
+    forceLoadAudioButton.textContent = '❌ Load Failed - Try Again';
+    forceLoadAudioButton.disabled = false;
+    showStatus('Failed to load audio: ' + err.message, false, true);
+  }
+});
 
 // Restore files from IndexedDB on page load
 window.addEventListener('load', () => {
