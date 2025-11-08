@@ -1253,7 +1253,7 @@ orientationChangeTimeout = setTimeout(() => {
 console.log('Orientation changed');
 }, 100);
 });
-const APP_VERSION = 'v14';
+const APP_VERSION = 'v15';
 console.log(`✅ PDF Audio Player ${APP_VERSION} loaded with highlighter toggle!`);
 
 // ========================================
@@ -1920,21 +1920,23 @@ testPlayAudioButton.addEventListener('click', async () => {
         .then(() => {
           console.log('✅ Play promise succeeded!');
 
-          // Check if it's actually playing after 1 second
+          // Check if it's actually playing after 2 seconds (give it more time)
           setTimeout(() => {
-            console.log('🔍 Checking playback after 1 second...');
+            console.log('🔍 Checking playback after 2 seconds...');
             console.log('   CurrentTime:', audioPlayer.currentTime);
             console.log('   Paused:', audioPlayer.paused);
             console.log('   ReadyState:', audioPlayer.readyState);
+            console.log('   Duration:', audioPlayer.duration);
 
             if (audioPlayer.currentTime === 0 && !audioPlayer.paused) {
               console.error('❌ Play succeeded but audio stuck at 0:00!');
-              console.error('   This means the audio data is likely empty or corrupt');
-              testPlayAudioButton.textContent = '❌ Audio Data Issue';
+              console.warn('⚠️ NOTE: If you can manually play it by clicking the play button, the audio file is fine!');
+              console.warn('⚠️ This might be an iOS autoplay restriction or JavaScript play() API issue');
+              testPlayAudioButton.textContent = '❌ Try Manual Play Button';
 
               // Try to reload with the file we have in memory
               if (currentMp3File) {
-                console.log('🔄 Attempting to reload audio from file...');
+                console.log('💡 Try clicking the audio player play button directly');
                 forceLoadAudioButton.style.display = 'block';
               }
             } else if (audioPlayer.currentTime > 0) {
@@ -1943,8 +1945,11 @@ testPlayAudioButton.addEventListener('click', async () => {
               setTimeout(() => {
                 testPlayAudioButton.style.display = 'none';
               }, 2000);
+            } else if (audioPlayer.paused) {
+              console.warn('⚠️ Audio was paused automatically (might be autoplay policy)');
+              testPlayAudioButton.textContent = '⚠️ Paused - Click Play Manually';
             }
-          }, 1000);
+          }, 2000);
         })
         .catch(error => {
           console.error('❌ Play promise failed:', {
