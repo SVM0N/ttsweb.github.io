@@ -606,9 +606,14 @@ user-select: text;
 <div class="collapsible-content">
 <div class="header-with-toggle">
 <h1>PDF Audio Player</h1>
+<div style="display: flex; gap: 8px;">
+<button class="dark-mode-toggle" id="debug-mode-toggle" title="Toggle Debug Console">
+<span id="debug-icon">🐛</span>
+</button>
 <button class="dark-mode-toggle" id="dark-mode-toggle" title="Toggle Dark Mode">
 <span id="theme-icon">🌙</span>
 </button>
+</div>
 </div>
 <p class="subtitle">Upload files for synchronized playback with highlighting</p>
 <div class="input-card">
@@ -1213,35 +1218,27 @@ console.warn = function(...args) {
   debugLog('WARN: ' + args.join(' '), 'warn');
 };
 
-// Toggle debug mode with triple-tap on title
-let tapCount = 0;
-let tapTimer = null;
-document.querySelector('h1').addEventListener('click', () => {
-  tapCount++;
-  clearTimeout(tapTimer);
+// Toggle debug mode with button
+const debugModeToggle = document.getElementById('debug-mode-toggle');
+const debugIcon = document.getElementById('debug-icon');
 
-  if (tapCount === 3) {
-    debugMode = !debugMode;
-    localStorage.setItem('debugMode', debugMode);
-    debugConsoleCard.style.display = debugMode ? 'block' : 'none';
+debugModeToggle.addEventListener('click', () => {
+  debugMode = !debugMode;
+  localStorage.setItem('debugMode', debugMode);
+  debugConsoleCard.style.display = debugMode ? 'block' : 'none';
 
-    if (debugMode) {
-      debugLog('🐛 Debug mode enabled', 'success');
-      showStatus('Debug mode enabled! Console visible.', false, false);
-    } else {
-      showStatus('Debug mode disabled.', false, false);
-    }
-
-    setTimeout(() => {
-      statusBox.style.display = 'none';
-    }, 2000);
-
-    tapCount = 0;
+  if (debugMode) {
+    debugIcon.textContent = '🟢';
+    debugLog('🐛 Debug mode enabled', 'success');
+    showStatus('Debug mode enabled! Console visible.', false, false);
+  } else {
+    debugIcon.textContent = '🐛';
+    showStatus('Debug mode disabled.', false, false);
   }
 
-  tapTimer = setTimeout(() => {
-    tapCount = 0;
-  }, 500);
+  setTimeout(() => {
+    statusBox.style.display = 'none';
+  }, 2000);
 });
 
 // Clear console button
