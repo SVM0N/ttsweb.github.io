@@ -1249,17 +1249,26 @@ const originalWarn = console.warn;
 
 console.log = function(...args) {
   originalLog.apply(console, args);
-  debugLog(args.join(' '), 'log');
+  const message = args.map(arg =>
+    typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg
+  ).join(' ');
+  debugLog(message, 'log');
 };
 
 console.error = function(...args) {
   originalError.apply(console, args);
-  debugLog('ERROR: ' + args.join(' '), 'error');
+  const message = args.map(arg =>
+    typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg
+  ).join(' ');
+  debugLog('ERROR: ' + message, 'error');
 };
 
 console.warn = function(...args) {
   originalWarn.apply(console, args);
-  debugLog('WARN: ' + args.join(' '), 'warn');
+  const message = args.map(arg =>
+    typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg
+  ).join(' ');
+  debugLog('WARN: ' + message, 'warn');
 };
 
 // Toggle debug mode with button
@@ -1462,43 +1471,40 @@ async function restoreFilesFromIndexedDB() {
       // Store file for manual reload
       currentMp3File = mp3Data.file;
 
-      // Use data URL for cached files (more reliable offline)
-      console.log('🔄 Converting MP3 to data URL for offline compatibility...');
-      try {
-        const dataURL = await loadMp3AsDataURL(mp3Data.file);
-        console.log('✅ Data URL created, length:', dataURL.length);
+      // Use blob URL (more efficient than data URL)
+      console.log('🔄 Creating blob URL from cached MP3...');
+      console.log('📊 File details:', {
+        name: mp3Data.file.name,
+        size: mp3Data.file.size,
+        type: mp3Data.file.type,
+        isFile: mp3Data.file instanceof File,
+        isBlob: mp3Data.file instanceof Blob
+      });
 
-        if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
-          URL.revokeObjectURL(audioPlayer.src);
-        }
-
-        audioPlayer.src = dataURL;
-        audioPlayer.load(); // Force load
-        console.log('🎵 Audio player src set to data URL');
-        console.log('🎵 Audio player ready state:', audioPlayer.readyState);
-        console.log('🎵 Audio player network state:', audioPlayer.networkState);
-
-        fileTracker.mp3 = true;
-        console.log('✅ MP3 restored from cache with data URL');
-        checkAllFilesLoaded();
-
-        // Show manual button if it doesn't load after 5 seconds
-        setTimeout(() => {
-          if (audioPlayer.readyState === 0) {
-            console.warn('⚠️ Audio not loading automatically, showing manual load button');
-            forceLoadAudioButton.style.display = 'block';
-          }
-        }, 5000);
-      } catch (err) {
-        console.error('❌ Failed to create data URL, falling back to blob:', err);
-        // Fallback to blob URL
-        const url = URL.createObjectURL(mp3Data.file);
-        audioPlayer.src = url;
-        audioPlayer.load();
-        fileTracker.mp3 = true;
-        checkAllFilesLoaded();
-        forceLoadAudioButton.style.display = 'block';
+      if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
+        URL.revokeObjectURL(audioPlayer.src);
       }
+
+      const url = URL.createObjectURL(mp3Data.file);
+      console.log('✅ Blob URL created:', url);
+
+      audioPlayer.src = url;
+      audioPlayer.load(); // Force load
+      console.log('🎵 Audio player src set to blob URL');
+      console.log('🎵 Audio player ready state:', audioPlayer.readyState);
+      console.log('🎵 Audio player network state:', audioPlayer.networkState);
+
+      fileTracker.mp3 = true;
+      console.log('✅ MP3 restored from cache with blob URL');
+      checkAllFilesLoaded();
+
+      // Show manual button if it doesn't load after 5 seconds
+      setTimeout(() => {
+        if (audioPlayer.readyState === 0 || audioPlayer.readyState === 1) {
+          console.warn('⚠️ Audio metadata loaded but may need manual intervention');
+          forceLoadAudioButton.style.display = 'block';
+        }
+      }, 5000);
     }
 
     // Restore JSON
@@ -1691,41 +1697,57 @@ forceLoadAudioButton.addEventListener('click', async () => {
   }
 
   try {
-    // Try data URL approach
-    console.log('Converting to data URL...');
-    const dataURL = await loadMp3AsDataURL(currentMp3File);
-    console.log('✅ Data URL created, setting as audio source...');
+    console.log('📁 Reloading audio from file:', {
+      name: currentMp3File.name,
+      size: currentMp3File.size,
+      type: currentMp3File.type
+    });
 
-    audioPlayer.src = dataURL;
+    // Revoke old blob URL
+    if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
+      URL.revokeObjectURL(audioPlayer.src);
+    }
+
+    // Create fresh blob URL
+    const url = URL.createObjectURL(currentMp3File);
+    console.log('✅ Fresh blob URL created:', url);
+
+    audioPlayer.src = url;
     audioPlayer.load();
+    console.log('🎵 Audio source set and load() called');
 
-    // Wait for it to load
+    // Wait for it to be ready to play
     await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('Timeout')), 10000);
+      const timeout = setTimeout(() => reject(new Error('Timeout after 10 seconds')), 10000);
 
-      audioPlayer.addEventListener('canplay', () => {
+      const onCanPlay = () => {
         clearTimeout(timeout);
+        console.log('✅ Audio canplay event fired');
         resolve();
-      }, { once: true });
+      };
 
-      audioPlayer.addEventListener('error', () => {
+      const onError = () => {
         clearTimeout(timeout);
-        reject(audioPlayer.error);
-      }, { once: true });
+        console.error('❌ Audio error event fired:', audioPlayer.error);
+        reject(audioPlayer.error || new Error('Unknown audio error'));
+      };
+
+      audioPlayer.addEventListener('canplay', onCanPlay, { once: true });
+      audioPlayer.addEventListener('error', onError, { once: true });
     });
 
     console.log('✅ Audio loaded successfully!');
     forceLoadAudioButton.style.display = 'none';
     forceLoadAudioButton.disabled = false;
     forceLoadAudioButton.textContent = '🔄 Force Load Audio';
-    showStatus('Audio loaded successfully!', false, false);
-    setTimeout(() => statusBox.style.display = 'none', 2000);
+    showStatus('Audio loaded! Try playing now.', false, false);
+    setTimeout(() => statusBox.style.display = 'none', 3000);
 
   } catch (err) {
     console.error('❌ Manual load failed:', err);
     forceLoadAudioButton.textContent = '❌ Load Failed - Try Again';
     forceLoadAudioButton.disabled = false;
-    showStatus('Failed to load audio: ' + err.message, false, true);
+    showStatus('Failed to load audio: ' + (err.message || 'Unknown error'), false, true);
   }
 });
 
