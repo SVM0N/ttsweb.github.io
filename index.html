@@ -602,7 +602,7 @@ user-select: text;
 </div>
 <div style="margin-bottom: 12px;" id="collapsed-audio">
 <audio id="audio-player" controls disabled preload="auto"></audio>
-<button class="toggle-button" id="test-play-audio" style="display: none; margin-top: 8px; padding: 8px; font-size: 13px; background: linear-gradient(135deg, rgba(52, 199, 89, 0.15) 0%, rgba(52, 199, 89, 0.1) 100%); color: rgba(30, 132, 73, 1);">
+<button class="toggle-button" id="test-play-audio" style="margin-top: 8px; padding: 8px; font-size: 13px; background: linear-gradient(135deg, rgba(52, 199, 89, 0.15) 0%, rgba(52, 199, 89, 0.1) 100%); color: rgba(30, 132, 73, 1);">
 ▶️ Test Play Audio
 </button>
 <button class="toggle-button" id="force-load-audio" style="display: none; margin-top: 8px; padding: 8px; font-size: 13px; background: linear-gradient(135deg, rgba(52, 199, 89, 0.15) 0%, rgba(52, 199, 89, 0.1) 100%); color: rgba(30, 132, 73, 1);">
@@ -755,6 +755,43 @@ const forceLoadAudioButton = document.getElementById('force-load-audio');
 const testPlayAudioButton = document.getElementById('test-play-audio');
 let currentMp3File = null; // Store the current MP3 file for manual reloading
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+// Setup audio event listeners early (on page load)
+function setupAudioEventListeners() {
+  if (audioPlayer.hasAttribute('data-listeners-added')) return;
+  audioPlayer.setAttribute('data-listeners-added', 'true');
+
+  audioPlayer.addEventListener('loadstart', () => console.log('🎵 Audio: loadstart'));
+  audioPlayer.addEventListener('loadedmetadata', () => {
+    console.log('✅ Audio: loadedmetadata');
+    console.log('   Duration:', audioPlayer.duration);
+    console.log('   ReadyState:', audioPlayer.readyState);
+    console.log('   NetworkState:', audioPlayer.networkState);
+    console.log('   Paused:', audioPlayer.paused);
+    console.log('   Disabled:', audioPlayer.disabled);
+  });
+  audioPlayer.addEventListener('loadeddata', () => console.log('✅ Audio: loadeddata'));
+  audioPlayer.addEventListener('canplay', () => console.log('✅ Audio: canplay'));
+  audioPlayer.addEventListener('canplaythrough', () => console.log('✅ Audio: canplaythrough'));
+  audioPlayer.addEventListener('play', () => console.log('▶️ Audio: play event'));
+  audioPlayer.addEventListener('playing', () => console.log('▶️ Audio: playing'));
+  audioPlayer.addEventListener('pause', () => console.log('⏸️ Audio: pause event'));
+  audioPlayer.addEventListener('error', (e) => {
+    console.error('❌ Audio Error:', {
+      error: audioPlayer.error,
+      code: audioPlayer.error?.code,
+      message: audioPlayer.error?.message,
+      event: e
+    });
+  });
+  audioPlayer.addEventListener('stalled', () => console.warn('⚠️ Audio: stalled'));
+  audioPlayer.addEventListener('suspend', () => console.warn('⚠️ Audio: suspend'));
+  audioPlayer.addEventListener('abort', () => console.warn('⚠️ Audio: abort'));
+}
+
+// Call it immediately
+setupAudioEventListeners();
+
 const darkModeToggle = document.getElementById('dark-mode-toggle');
 const themeIcon = document.getElementById('theme-icon');
 const currentTheme = localStorage.getItem('theme');
@@ -919,40 +956,7 @@ console.log('🎵 Audio player network state:', audioPlayer.networkState);
 fileTracker.mp3 = true;
 checkAllFilesLoaded();
 
-// Add event listeners to debug audio loading (only once)
-if (!audioPlayer.hasAttribute('data-listeners-added')) {
-  audioPlayer.setAttribute('data-listeners-added', 'true');
-
-  audioPlayer.addEventListener('loadstart', () => console.log('🎵 Audio: loadstart'));
-  audioPlayer.addEventListener('loadedmetadata', () => {
-    console.log('✅ Audio: loadedmetadata');
-    console.log('   Duration:', audioPlayer.duration);
-    console.log('   ReadyState:', audioPlayer.readyState);
-    console.log('   NetworkState:', audioPlayer.networkState);
-    console.log('   Paused:', audioPlayer.paused);
-    console.log('   Disabled:', audioPlayer.disabled);
-
-    // Show test play button when metadata loads
-    testPlayAudioButton.style.display = 'block';
-  });
-  audioPlayer.addEventListener('loadeddata', () => console.log('✅ Audio: loadeddata'));
-  audioPlayer.addEventListener('canplay', () => console.log('✅ Audio: canplay'));
-  audioPlayer.addEventListener('canplaythrough', () => console.log('✅ Audio: canplaythrough'));
-  audioPlayer.addEventListener('play', () => console.log('▶️ Audio: play event'));
-  audioPlayer.addEventListener('playing', () => console.log('▶️ Audio: playing'));
-  audioPlayer.addEventListener('pause', () => console.log('⏸️ Audio: pause event'));
-  audioPlayer.addEventListener('error', (e) => {
-    console.error('❌ Audio Error:', {
-      error: audioPlayer.error,
-      code: audioPlayer.error?.code,
-      message: audioPlayer.error?.message,
-      event: e
-    });
-  });
-  audioPlayer.addEventListener('stalled', () => console.warn('⚠️ Audio: stalled'));
-  audioPlayer.addEventListener('suspend', () => console.warn('⚠️ Audio: suspend'));
-  audioPlayer.addEventListener('abort', () => console.warn('⚠️ Audio: abort'));
-}
+// Event listeners are now set up globally at page load
 
 // Store file for manual reload
 currentMp3File = file;
