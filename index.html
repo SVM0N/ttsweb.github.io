@@ -622,6 +622,9 @@ user-select: text;
 </div>
 </div>
 <p class="subtitle">Upload files for synchronized playback with highlighting</p>
+<div style="text-align: center; margin: -8px 0 12px 0;">
+<span id="app-version" style="font-size: 11px; color: var(--text-tertiary); font-weight: 600; background: var(--card-bg); padding: 4px 10px; border-radius: 8px; border: 1px solid var(--card-border);">Loading...</span>
+</div>
 <div class="input-card">
 <label class="input-label">Upload Files</label>
 <div class="file-inputs-combined">
@@ -1226,6 +1229,9 @@ console.log('Orientation changed');
 });
 const APP_VERSION = 'v19';
 console.log(`✅ PDF Audio Player ${APP_VERSION} loaded with highlighter toggle!`);
+
+// Display version in UI
+document.getElementById('app-version').textContent = APP_VERSION;
 
 // ========================================
 // On-Screen Debug Console for Mobile
