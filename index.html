@@ -1427,7 +1427,7 @@ async function saveFileToIndexedDB(type, file) {
     const arrayBuffer = await file.arrayBuffer();
     console.log(`✅ ArrayBuffer created, size:`, arrayBuffer.byteLength, 'bytes');
 
-    await store.put({
+    const putRequest = store.put({
       type: type,
       arrayBuffer: arrayBuffer,
       name: file.name,
@@ -1436,10 +1436,19 @@ async function saveFileToIndexedDB(type, file) {
       lastModified: file.lastModified
     });
 
-    console.log(`✅ Saved ${type} file to IndexedDB:`, file.name, 'Size:', file.size, 'bytes');
     return new Promise((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
+      putRequest.onsuccess = () => {
+        console.log(`✅ Saved ${type} file to IndexedDB:`, file.name, 'Size:', file.size, 'bytes');
+        resolve();
+      };
+      putRequest.onerror = () => {
+        console.error(`❌ Put request failed for ${type}:`, putRequest.error);
+        reject(putRequest.error);
+      };
+      tx.onerror = () => {
+        console.error(`❌ Transaction failed for ${type}:`, tx.error);
+        reject(tx.error);
+      };
     });
   } catch (err) {
     console.error(`❌ Error saving ${type} to IndexedDB:`, err);
@@ -1734,6 +1743,25 @@ testPlayAudioButton.addEventListener('click', async () => {
       size: currentMp3File.size,
       type: currentMp3File.type
     });
+
+    // Verify the file actually has data
+    try {
+      const testBuffer = await currentMp3File.slice(0, 100).arrayBuffer();
+      console.log('✅ File has readable data, first 100 bytes length:', testBuffer.byteLength);
+
+      // Check for MP3 magic bytes (should start with FF FB or FF F3 or ID3)
+      const firstBytes = new Uint8Array(testBuffer).slice(0, 3);
+      const hexString = Array.from(firstBytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
+      console.log('🔍 First 3 bytes (hex):', hexString);
+
+      if (firstBytes[0] === 0xFF || (firstBytes[0] === 0x49 && firstBytes[1] === 0x44 && firstBytes[2] === 0x33)) {
+        console.log('✅ MP3 magic bytes present - file appears valid');
+      } else {
+        console.warn('⚠️ Unexpected file header - may not be valid MP3');
+      }
+    } catch (err) {
+      console.error('❌ Cannot read file data:', err);
+    }
   } else {
     console.warn('⚠️ No MP3 file in currentMp3File variable!');
   }
