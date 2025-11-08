@@ -688,6 +688,11 @@ user-select: text;
 🗑️ Clear All Cached Data
 </button>
 </div>
+<div class="input-card" id="debug-console-card" style="display: none;">
+<label class="input-label">Debug Console</label>
+<div id="debug-console" style="font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; background: var(--input-bg-start); padding: 10px; border-radius: 8px; color: var(--text-primary);"></div>
+<button class="toggle-button" id="clear-console-button" style="margin-top: 8px; padding: 8px; font-size: 12px;">Clear Console</button>
+</div>
 </div>
 </aside>
 <main class="main-viewer" id="pdf-viewer">
@@ -870,20 +875,66 @@ const file = e.target.files[0];
 if (!file) return;
 document.getElementById('mp3-file-name').textContent = file.name;
 
+console.log('📁 MP3 File Details:', {
+  name: file.name,
+  size: file.size,
+  type: file.type,
+  lastModified: file.lastModified
+});
+
 // Save to IndexedDB for offline access
 try {
 await saveFileToIndexedDB('mp3', file);
+console.log('✅ MP3 saved to IndexedDB successfully');
 } catch (err) {
-console.error('Failed to save MP3 to IndexedDB:', err);
+console.error('❌ Failed to save MP3 to IndexedDB:', err);
 }
 
 if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
 URL.revokeObjectURL(audioPlayer.src);
 }
 const url = URL.createObjectURL(file);
+console.log('🔗 Created blob URL for audio:', url);
+
 audioPlayer.src = url;
+console.log('🎵 Audio player src set to:', audioPlayer.src);
+console.log('🎵 Audio player ready state:', audioPlayer.readyState);
+console.log('🎵 Audio player network state:', audioPlayer.networkState);
+
 fileTracker.mp3 = true;
 checkAllFilesLoaded();
+
+// Add event listeners to debug audio loading
+audioPlayer.addEventListener('loadstart', () => console.log('🎵 Audio: loadstart'));
+audioPlayer.addEventListener('loadedmetadata', () => console.log('✅ Audio: loadedmetadata'));
+audioPlayer.addEventListener('loadeddata', () => console.log('✅ Audio: loadeddata'));
+audioPlayer.addEventListener('canplay', () => console.log('✅ Audio: canplay'));
+audioPlayer.addEventListener('canplaythrough', () => console.log('✅ Audio: canplaythrough'));
+audioPlayer.addEventListener('error', (e) => {
+  console.error('❌ Audio Error:', {
+    error: audioPlayer.error,
+    code: audioPlayer.error?.code,
+    message: audioPlayer.error?.message,
+    event: e
+  });
+});
+audioPlayer.addEventListener('stalled', () => console.warn('⚠️ Audio: stalled'));
+audioPlayer.addEventListener('suspend', () => console.warn('⚠️ Audio: suspend'));
+audioPlayer.addEventListener('abort', () => console.warn('⚠️ Audio: abort'));
+
+// Fallback: If audio doesn't start loading within 2 seconds, try data URL
+setTimeout(async () => {
+  if (audioPlayer.readyState === 0 || audioPlayer.networkState === 3) {
+    console.warn('⚠️ Audio not loading with blob URL, trying data URL fallback...');
+    try {
+      const dataURL = await loadMp3AsDataURL(file);
+      audioPlayer.src = dataURL;
+      console.log('✅ Switched to data URL for audio');
+    } catch (err) {
+      console.error('❌ Data URL fallback failed:', err);
+    }
+  }
+}, 2000);
 }
 async function handleJsonUpload(e) {
 const file = e.target.files[0];
@@ -1107,6 +1158,99 @@ console.log('Orientation changed');
 console.log('✅ PDF Audio Player loaded with highlighter toggle!');
 
 // ========================================
+// On-Screen Debug Console for Mobile
+// ========================================
+
+const debugConsoleElement = document.getElementById('debug-console');
+const debugConsoleCard = document.getElementById('debug-console-card');
+let debugMode = localStorage.getItem('debugMode') === 'true';
+
+// Show debug console if enabled
+if (debugMode) {
+  debugConsoleCard.style.display = 'block';
+}
+
+// Function to add log to on-screen console
+function debugLog(message, type = 'log') {
+  if (!debugMode) return;
+
+  const timestamp = new Date().toLocaleTimeString();
+  const colors = {
+    log: 'var(--text-primary)',
+    error: '#ff3b30',
+    warn: '#ff9500',
+    success: '#34c759'
+  };
+
+  const logEntry = document.createElement('div');
+  logEntry.style.color = colors[type] || colors.log;
+  logEntry.style.marginBottom = '4px';
+  logEntry.style.borderBottom = '1px solid var(--card-border)';
+  logEntry.style.paddingBottom = '4px';
+  logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+
+  debugConsoleElement.appendChild(logEntry);
+  debugConsoleElement.scrollTop = debugConsoleElement.scrollHeight;
+}
+
+// Override console methods to show in on-screen console
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+console.log = function(...args) {
+  originalLog.apply(console, args);
+  debugLog(args.join(' '), 'log');
+};
+
+console.error = function(...args) {
+  originalError.apply(console, args);
+  debugLog('ERROR: ' + args.join(' '), 'error');
+};
+
+console.warn = function(...args) {
+  originalWarn.apply(console, args);
+  debugLog('WARN: ' + args.join(' '), 'warn');
+};
+
+// Toggle debug mode with triple-tap on title
+let tapCount = 0;
+let tapTimer = null;
+document.querySelector('h1').addEventListener('click', () => {
+  tapCount++;
+  clearTimeout(tapTimer);
+
+  if (tapCount === 3) {
+    debugMode = !debugMode;
+    localStorage.setItem('debugMode', debugMode);
+    debugConsoleCard.style.display = debugMode ? 'block' : 'none';
+
+    if (debugMode) {
+      debugLog('🐛 Debug mode enabled', 'success');
+      showStatus('Debug mode enabled! Console visible.', false, false);
+    } else {
+      showStatus('Debug mode disabled.', false, false);
+    }
+
+    setTimeout(() => {
+      statusBox.style.display = 'none';
+    }, 2000);
+
+    tapCount = 0;
+  }
+
+  tapTimer = setTimeout(() => {
+    tapCount = 0;
+  }, 500);
+});
+
+// Clear console button
+document.getElementById('clear-console-button').addEventListener('click', () => {
+  debugConsoleElement.innerHTML = '';
+  debugLog('Console cleared', 'log');
+});
+
+// ========================================
 // IndexedDB Storage for Offline Support
 // ========================================
 
@@ -1258,11 +1402,25 @@ async function restoreFilesFromIndexedDB() {
     if (mp3Data && mp3Data.file) {
       document.getElementById('mp3-file-name').textContent = mp3Data.name;
 
+      console.log('📁 Restoring MP3 from cache:', {
+        name: mp3Data.name,
+        size: mp3Data.size,
+        type: mp3Data.file.type,
+        isFile: mp3Data.file instanceof File,
+        isBlob: mp3Data.file instanceof Blob
+      });
+
       if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
         URL.revokeObjectURL(audioPlayer.src);
       }
       const url = URL.createObjectURL(mp3Data.file);
+      console.log('🔗 Created blob URL from cached MP3:', url);
+
       audioPlayer.src = url;
+      console.log('🎵 Audio player src set to:', audioPlayer.src);
+      console.log('🎵 Audio player ready state:', audioPlayer.readyState);
+      console.log('🎵 Audio player network state:', audioPlayer.networkState);
+
       fileTracker.mp3 = true;
       console.log('✅ MP3 restored from cache');
       checkAllFilesLoaded();
@@ -1355,6 +1513,16 @@ window.addEventListener('appinstalled', () => {
   console.log('✅ PWA installed successfully!');
   deferredPrompt = null;
 });
+
+// Alternative: Load MP3 as base64 data URL (more compatible offline)
+async function loadMp3AsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 // Restore files from IndexedDB on page load
 window.addEventListener('load', () => {
