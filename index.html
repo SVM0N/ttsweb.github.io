@@ -905,11 +905,15 @@ currentUserPage = null;
 currentAudioPage = null;
 if (intersectionObserver) intersectionObserver.disconnect();
 
-// Save to IndexedDB for offline access
+// Save to Cache API for offline access (with IndexedDB fallback)
 try {
-await saveFileToIndexedDB('pdf', file);
+const saved = await saveFileToCache('pdf', file);
+if (!saved) {
+  console.warn('⚠️ Cache API failed, trying IndexedDB fallback...');
+  await saveFileToIndexedDB('pdf', file);
+}
 } catch (err) {
-console.error('Failed to save PDF to IndexedDB:', err);
+console.error('Failed to save PDF:', err);
 }
 
 const fileReader = new FileReader();
@@ -940,12 +944,15 @@ console.log('📁 MP3 File Details:', {
   lastModified: file.lastModified
 });
 
-// Save to IndexedDB for offline access
+// Save to Cache API for offline access (with IndexedDB fallback)
 try {
-await saveFileToIndexedDB('mp3', file);
-console.log('✅ MP3 saved to IndexedDB successfully');
+const saved = await saveFileToCache('mp3', file);
+if (!saved) {
+  console.warn('⚠️ Cache API failed, trying IndexedDB fallback...');
+  await saveFileToIndexedDB('mp3', file);
+}
 } catch (err) {
-console.error('❌ Failed to save MP3 to IndexedDB:', err);
+console.error('❌ Failed to save MP3:', err);
 }
 
 if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
@@ -997,11 +1004,15 @@ const file = e.target.files[0];
 if (!file) return;
 document.getElementById('json-file-name').textContent = file.name;
 
-// Save to IndexedDB for offline access
+// Save to Cache API for offline access (with IndexedDB fallback)
 try {
-await saveFileToIndexedDB('json', file);
+const saved = await saveFileToCache('json', file);
+if (!saved) {
+  console.warn('⚠️ Cache API failed, trying IndexedDB fallback...');
+  await saveFileToIndexedDB('json', file);
+}
 } catch (err) {
-console.error('Failed to save JSON to IndexedDB:', err);
+console.error('Failed to save JSON:', err);
 }
 
 const fileReader = new FileReader();
@@ -1211,7 +1222,8 @@ orientationChangeTimeout = setTimeout(() => {
 console.log('Orientation changed');
 }, 100);
 });
-console.log('✅ PDF Audio Player loaded with highlighter toggle!');
+const APP_VERSION = 'v13';
+console.log(`✅ PDF Audio Player ${APP_VERSION} loaded with highlighter toggle!`);
 
 // ========================================
 // On-Screen Debug Console for Mobile
@@ -1321,6 +1333,7 @@ document.getElementById('share-logs-button').addEventListener('click', async () 
     ).join('\n');
 
     const fullReport = `PDF Audio Player - Debug Logs
+App Version: ${APP_VERSION}
 Generated: ${new Date().toLocaleString()}
 User Agent: ${navigator.userAgent}
 Online: ${navigator.onLine}
@@ -1374,7 +1387,96 @@ document.getElementById('clear-console-button').addEventListener('click', () => 
 });
 
 // ========================================
-// IndexedDB Storage for Offline Support
+// Cache API Storage for Offline Support (PRIMARY)
+// ========================================
+
+const USER_FILES_CACHE = 'pdf-audio-player-user-files-v1';
+
+// Save file to Cache API
+async function saveFileToCache(type, file) {
+  try {
+    console.log(`💾 Saving ${type} to Cache API:`, {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    });
+
+    const cache = await caches.open(USER_FILES_CACHE);
+
+    // Create a unique URL for this file type
+    const fileUrl = `/cached-files/${type}`;
+
+    // Create a Response object with the file
+    const response = new Response(file, {
+      headers: {
+        'Content-Type': file.type,
+        'X-File-Name': file.name,
+        'X-File-Size': file.size.toString(),
+        'X-File-Modified': file.lastModified.toString()
+      }
+    });
+
+    await cache.put(fileUrl, response);
+    console.log(`✅ Saved ${type} to Cache API:`, file.name, 'Size:', file.size, 'bytes');
+    return true;
+  } catch (err) {
+    console.error(`❌ Error saving ${type} to Cache API:`, err);
+    return false;
+  }
+}
+
+// Load file from Cache API
+async function loadFileFromCache(type) {
+  try {
+    const cache = await caches.open(USER_FILES_CACHE);
+    const fileUrl = `/cached-files/${type}`;
+    const response = await cache.match(fileUrl);
+
+    if (!response) {
+      console.log(`ℹ️ No cached ${type} found`);
+      return null;
+    }
+
+    const blob = await response.blob();
+    const fileName = response.headers.get('X-File-Name') || `cached-${type}`;
+    const fileSize = parseInt(response.headers.get('X-File-Size') || '0');
+    const lastModified = parseInt(response.headers.get('X-File-Modified') || Date.now());
+
+    console.log(`✅ Loaded ${type} from Cache API:`, fileName, 'Size:', fileSize, 'bytes');
+
+    // Reconstruct File object
+    const file = new File([blob], fileName, {
+      type: blob.type,
+      lastModified: lastModified
+    });
+
+    return {
+      file: file,
+      name: fileName,
+      size: fileSize
+    };
+  } catch (err) {
+    console.error(`❌ Error loading ${type} from Cache API:`, err);
+    return null;
+  }
+}
+
+// Clear all cached files
+async function clearCachedFiles() {
+  try {
+    const deleted = await caches.delete(USER_FILES_CACHE);
+    if (deleted) {
+      console.log('✅ Cached files cleared');
+    }
+    return deleted;
+  } catch (err) {
+    console.error('❌ Error clearing cached files:', err);
+    return false;
+  }
+}
+
+// ========================================
+// IndexedDB Storage (FALLBACK)
 // ========================================
 
 const DB_NAME = 'pdfAudioPlayerDB';
@@ -1537,13 +1639,17 @@ async function checkStorageUsage() {
   return null;
 }
 
-// Restore files from IndexedDB on app startup
-async function restoreFilesFromIndexedDB() {
-  console.log('🔄 Checking for cached files in IndexedDB...');
+// Restore files from Cache on app startup
+async function restoreFilesFromCache() {
+  console.log(`🔄 Checking for cached files... (App version: ${APP_VERSION})`);
 
   try {
-    // Restore PDF
-    const pdfData = await loadFileFromIndexedDB('pdf');
+    // Try Cache API first, fallback to IndexedDB
+    let pdfData = await loadFileFromCache('pdf');
+    if (!pdfData) {
+      console.log('ℹ️ Trying IndexedDB fallback for PDF...');
+      pdfData = await loadFileFromIndexedDB('pdf');
+    }
     if (pdfData && pdfData.file) {
       document.getElementById('pdf-file-name').textContent = pdfData.name;
       viewerPlaceholder.style.display = 'none';
@@ -1568,7 +1674,11 @@ async function restoreFilesFromIndexedDB() {
     }
 
     // Restore MP3
-    const mp3Data = await loadFileFromIndexedDB('mp3');
+    let mp3Data = await loadFileFromCache('mp3');
+    if (!mp3Data) {
+      console.log('ℹ️ Trying IndexedDB fallback for MP3...');
+      mp3Data = await loadFileFromIndexedDB('mp3');
+    }
     if (mp3Data && mp3Data.file) {
       document.getElementById('mp3-file-name').textContent = mp3Data.name;
 
@@ -1620,7 +1730,11 @@ async function restoreFilesFromIndexedDB() {
     }
 
     // Restore JSON
-    const jsonData = await loadFileFromIndexedDB('json');
+    let jsonData = await loadFileFromCache('json');
+    if (!jsonData) {
+      console.log('ℹ️ Trying IndexedDB fallback for JSON...');
+      jsonData = await loadFileFromIndexedDB('json');
+    }
     if (jsonData && jsonData.file) {
       document.getElementById('json-file-name').textContent = jsonData.name;
 
@@ -1882,9 +1996,9 @@ forceLoadAudioButton.addEventListener('click', async () => {
   }
 });
 
-// Restore files from IndexedDB on page load
+// Restore files from Cache on page load
 window.addEventListener('load', () => {
-  restoreFilesFromIndexedDB();
+  restoreFilesFromCache();
 });
 
 // Reset data button handler
@@ -1898,13 +2012,17 @@ document.getElementById('reset-data-button').addEventListener('click', async () 
   try {
     showStatus('Clearing all cached data...', true, false);
 
-    // Clear IndexedDB
+    // Clear Cache API user files
+    await clearCachedFiles();
+
+    // Clear IndexedDB (fallback)
     await clearAllIndexedDBData();
 
-    // Clear service worker cache
+    // Clear service worker app cache
     if ('caches' in window) {
       const cacheNames = await caches.keys();
-      await Promise.all(cacheNames.map(name => caches.delete(name)));
+      const appCaches = cacheNames.filter(name => name.startsWith('pdf-audio-player-v'));
+      await Promise.all(appCaches.map(name => caches.delete(name)));
       console.log('✅ Service Worker caches cleared');
     }
 
