@@ -764,6 +764,8 @@ let currentMp3File = null; // Store the current MP3 file for manual reloading
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
 // Setup audio event listeners early (on page load)
+let currentTimeMonitor = null;
+
 function setupAudioEventListeners() {
   if (audioPlayer.hasAttribute('data-listeners-added')) return;
   audioPlayer.setAttribute('data-listeners-added', 'true');
@@ -780,9 +782,30 @@ function setupAudioEventListeners() {
   audioPlayer.addEventListener('loadeddata', () => console.log('✅ Audio: loadeddata'));
   audioPlayer.addEventListener('canplay', () => console.log('✅ Audio: canplay'));
   audioPlayer.addEventListener('canplaythrough', () => console.log('✅ Audio: canplaythrough'));
-  audioPlayer.addEventListener('play', () => console.log('▶️ Audio: play event'));
+  audioPlayer.addEventListener('play', () => {
+    console.log('▶️ Audio: play event');
+    // Start monitoring currentTime every 100ms when playing
+    if (currentTimeMonitor) clearInterval(currentTimeMonitor);
+    currentTimeMonitor = setInterval(() => {
+      console.log(`⏱️ CurrentTime: ${audioPlayer.currentTime.toFixed(3)}s | Paused: ${audioPlayer.paused}`);
+    }, 100);
+  });
   audioPlayer.addEventListener('playing', () => console.log('▶️ Audio: playing'));
-  audioPlayer.addEventListener('pause', () => console.log('⏸️ Audio: pause event'));
+  audioPlayer.addEventListener('pause', () => {
+    console.log('⏸️ Audio: pause event');
+    // Stop monitoring when paused
+    if (currentTimeMonitor) {
+      clearInterval(currentTimeMonitor);
+      currentTimeMonitor = null;
+    }
+  });
+  audioPlayer.addEventListener('ended', () => {
+    console.log('🏁 Audio: ended');
+    if (currentTimeMonitor) {
+      clearInterval(currentTimeMonitor);
+      currentTimeMonitor = null;
+    }
+  });
   audioPlayer.addEventListener('error', (e) => {
     console.error('❌ Audio Error:', {
       error: audioPlayer.error,
@@ -790,6 +813,10 @@ function setupAudioEventListeners() {
       message: audioPlayer.error?.message,
       event: e
     });
+    if (currentTimeMonitor) {
+      clearInterval(currentTimeMonitor);
+      currentTimeMonitor = null;
+    }
   });
   audioPlayer.addEventListener('stalled', () => console.warn('⚠️ Audio: stalled'));
   audioPlayer.addEventListener('suspend', () => console.warn('⚠️ Audio: suspend'));
@@ -955,45 +982,15 @@ if (!saved) {
 console.error('❌ Failed to save MP3:', err);
 }
 
-// CRITICAL FIX: iOS Safari offline blob URL bug workaround
-// When completely offline, iOS Safari can't decode audio from blob URLs
-// Solution: Convert small-ish files to base64 data URL
-console.log('🔍 Checking online status:', navigator.onLine);
-
-if (!navigator.onLine && file.size < 10 * 1024 * 1024) { // Under 10MB, use data URL
-  console.log('⚠️ Offline detected + file < 10MB, using data URL instead of blob...');
-  try {
-    const dataURL = await loadMp3AsDataURL(file);
-    console.log('✅ Data URL created, length:', dataURL.length);
-
-    if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
-      URL.revokeObjectURL(audioPlayer.src);
-    }
-
-    audioPlayer.src = dataURL;
-    audioPlayer.load();
-    console.log('🎵 Audio player src set to data URL');
-  } catch (err) {
-    console.error('❌ Data URL conversion failed, trying blob anyway:', err);
-    // Fallback to blob if data URL fails
-    if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
-      URL.revokeObjectURL(audioPlayer.src);
-    }
-    const url = URL.createObjectURL(file);
-    audioPlayer.src = url;
-    audioPlayer.load();
-  }
-} else {
-  // Online or large file: use blob URL (normal behavior)
-  console.log('✅ Online or large file, using blob URL');
-  if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
-    URL.revokeObjectURL(audioPlayer.src);
-  }
-  const url = URL.createObjectURL(file);
-  console.log('🔗 Created blob URL for audio:', url);
-  audioPlayer.src = url;
-  audioPlayer.load();
+// Simple blob URL approach (v16: reverted offline detection)
+console.log('🔗 Creating blob URL for audio...');
+if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
+  URL.revokeObjectURL(audioPlayer.src);
 }
+const url = URL.createObjectURL(file);
+console.log('✅ Blob URL created:', url);
+audioPlayer.src = url;
+audioPlayer.load();
 
 console.log('🎵 Audio player ready state:', audioPlayer.readyState);
 console.log('🎵 Audio player network state:', audioPlayer.networkState);
@@ -1001,34 +998,8 @@ console.log('🎵 Audio player network state:', audioPlayer.networkState);
 fileTracker.mp3 = true;
 checkAllFilesLoaded();
 
-// Event listeners are now set up globally at page load
-
 // Store file for manual reload
 currentMp3File = file;
-
-// Fallback: If audio doesn't start loading within 3 seconds, try data URL
-setTimeout(async () => {
-  if (audioPlayer.readyState === 0 || audioPlayer.networkState === 3) {
-    console.warn('⚠️ Audio not loading with blob URL, trying data URL fallback...');
-    try {
-      const dataURL = await loadMp3AsDataURL(file);
-      audioPlayer.src = dataURL;
-      audioPlayer.load();
-      console.log('✅ Switched to data URL for audio');
-
-      // If still not loading after 2 more seconds, show manual button
-      setTimeout(() => {
-        if (audioPlayer.readyState === 0) {
-          console.warn('⚠️ Audio still not loading, showing manual load button');
-          forceLoadAudioButton.style.display = 'block';
-        }
-      }, 2000);
-    } catch (err) {
-      console.error('❌ Data URL fallback failed:', err);
-      forceLoadAudioButton.style.display = 'block';
-    }
-  }
-}, 3000);
 }
 async function handleJsonUpload(e) {
 const file = e.target.files[0];
@@ -1253,7 +1224,7 @@ orientationChangeTimeout = setTimeout(() => {
 console.log('Orientation changed');
 }, 100);
 });
-const APP_VERSION = 'v15';
+const APP_VERSION = 'v16';
 console.log(`✅ PDF Audio Player ${APP_VERSION} loaded with highlighter toggle!`);
 
 // ========================================
