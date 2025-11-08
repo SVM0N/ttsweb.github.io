@@ -955,15 +955,46 @@ if (!saved) {
 console.error('❌ Failed to save MP3:', err);
 }
 
-if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
-URL.revokeObjectURL(audioPlayer.src);
-}
-const url = URL.createObjectURL(file);
-console.log('🔗 Created blob URL for audio:', url);
+// CRITICAL FIX: iOS Safari offline blob URL bug workaround
+// When completely offline, iOS Safari can't decode audio from blob URLs
+// Solution: Convert small-ish files to base64 data URL
+console.log('🔍 Checking online status:', navigator.onLine);
 
-audioPlayer.src = url;
-audioPlayer.load(); // Force the audio to load
-console.log('🎵 Audio player src set to:', audioPlayer.src);
+if (!navigator.onLine && file.size < 10 * 1024 * 1024) { // Under 10MB, use data URL
+  console.log('⚠️ Offline detected + file < 10MB, using data URL instead of blob...');
+  try {
+    const dataURL = await loadMp3AsDataURL(file);
+    console.log('✅ Data URL created, length:', dataURL.length);
+
+    if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
+      URL.revokeObjectURL(audioPlayer.src);
+    }
+
+    audioPlayer.src = dataURL;
+    audioPlayer.load();
+    console.log('🎵 Audio player src set to data URL');
+  } catch (err) {
+    console.error('❌ Data URL conversion failed, trying blob anyway:', err);
+    // Fallback to blob if data URL fails
+    if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
+      URL.revokeObjectURL(audioPlayer.src);
+    }
+    const url = URL.createObjectURL(file);
+    audioPlayer.src = url;
+    audioPlayer.load();
+  }
+} else {
+  // Online or large file: use blob URL (normal behavior)
+  console.log('✅ Online or large file, using blob URL');
+  if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
+    URL.revokeObjectURL(audioPlayer.src);
+  }
+  const url = URL.createObjectURL(file);
+  console.log('🔗 Created blob URL for audio:', url);
+  audioPlayer.src = url;
+  audioPlayer.load();
+}
+
 console.log('🎵 Audio player ready state:', audioPlayer.readyState);
 console.log('🎵 Audio player network state:', audioPlayer.networkState);
 
@@ -1222,7 +1253,7 @@ orientationChangeTimeout = setTimeout(() => {
 console.log('Orientation changed');
 }, 100);
 });
-const APP_VERSION = 'v13';
+const APP_VERSION = 'v14';
 console.log(`✅ PDF Audio Player ${APP_VERSION} loaded with highlighter toggle!`);
 
 // ========================================
