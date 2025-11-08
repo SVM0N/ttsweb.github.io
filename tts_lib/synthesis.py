@@ -107,8 +107,8 @@ def synth_string(
         tts, elements, tts_model, voice, speed, **kwargs
     )
 
-    # Save audio
-    out_base = config.get_output_path("tts_text")
+    # Save audio with model name
+    out_base = config.get_output_path(f"tts_text_{tts_model}")
     audio_path = _save_audio(wav_bytes, out_base, out_format)
 
     # Save manifest
@@ -172,8 +172,8 @@ def synth_pdf(
         tts, elements, tts_model, voice, speed, **kwargs
     )
 
-    # Save audio
-    out_base = config.get_output_path(f"{basename or stem}_tts")
+    # Save audio with model name
+    out_base = config.get_output_path(f"{basename or stem}_tts_{tts_model}")
     audio_path = _save_audio(wav_bytes, out_base, out_format)
 
     # Save manifest
@@ -261,9 +261,10 @@ def synth_epub(
             manifest = create_manifest(audio_name, timeline)
             zf.writestr(f"{name}_manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
 
-    # Save ZIP
+    # Save ZIP with model name
     zip_buf.seek(0)
-    zpath = str(config.get_output_path(f"{zip_name or (stem + '_chapters')}.zip"))
+    zip_basename = zip_name or f"{stem}_chapters_{tts_model}"
+    zpath = str(config.get_output_path(f"{zip_basename}.zip"))
     with open(zpath, "wb") as f:
         f.write(zip_buf.read())
 
