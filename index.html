@@ -702,7 +702,14 @@ user-select: text;
 <div class="input-card" id="debug-console-card" style="display: none;">
 <label class="input-label">Debug Console</label>
 <div id="debug-console" style="font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; background: var(--input-bg-start); padding: 10px; border-radius: 8px; color: var(--text-primary);"></div>
-<button class="toggle-button" id="clear-console-button" style="margin-top: 8px; padding: 8px; font-size: 12px;">Clear Console</button>
+<div style="display: flex; gap: 8px; margin-top: 8px;">
+<button class="toggle-button" id="share-logs-button" style="flex: 1; padding: 8px; font-size: 12px; background: linear-gradient(135deg, rgba(0, 122, 255, 0.15) 0%, rgba(0, 122, 255, 0.1) 100%); color: rgba(0, 122, 255, 1);">
+📤 Share Logs
+</button>
+<button class="toggle-button" id="clear-console-button" style="flex: 1; padding: 8px; font-size: 12px;">
+🗑️ Clear
+</button>
+</div>
 </div>
 </div>
 </aside>
@@ -1213,6 +1220,7 @@ console.log('✅ PDF Audio Player loaded with highlighter toggle!');
 const debugConsoleElement = document.getElementById('debug-console');
 const debugConsoleCard = document.getElementById('debug-console-card');
 let debugMode = localStorage.getItem('debugMode') === 'true';
+let logHistory = []; // Store all logs for sharing
 
 // Show debug console if enabled
 if (debugMode) {
@@ -1221,9 +1229,17 @@ if (debugMode) {
 
 // Function to add log to on-screen console
 function debugLog(message, type = 'log') {
+  const timestamp = new Date().toLocaleTimeString();
+
+  // Always store in history for sharing
+  logHistory.push({
+    timestamp: timestamp,
+    type: type,
+    message: message
+  });
+
   if (!debugMode) return;
 
-  const timestamp = new Date().toLocaleTimeString();
   const colors = {
     log: 'var(--text-primary)',
     error: '#ff3b30',
@@ -1294,9 +1310,66 @@ debugModeToggle.addEventListener('click', () => {
   }, 2000);
 });
 
+// Share logs button
+document.getElementById('share-logs-button').addEventListener('click', async () => {
+  console.log('📤 Preparing logs for sharing...');
+
+  try {
+    // Format logs as text
+    const logsText = logHistory.map(log =>
+      `[${log.timestamp}] ${log.type.toUpperCase()}: ${log.message}`
+    ).join('\n');
+
+    const fullReport = `PDF Audio Player - Debug Logs
+Generated: ${new Date().toLocaleString()}
+User Agent: ${navigator.userAgent}
+Online: ${navigator.onLine}
+
+=== LOGS ===
+${logsText}
+
+=== END OF LOGS ===`;
+
+    // Try Web Share API first (for AirDrop on iOS/Mac)
+    if (navigator.share && navigator.canShare) {
+      const file = new File([fullReport], 'debug-logs.txt', { type: 'text/plain' });
+
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'PDF Audio Player Debug Logs',
+          text: 'Debug logs from PDF Audio Player'
+        });
+        console.log('✅ Logs shared successfully!');
+        return;
+      }
+    }
+
+    // Fallback: Download as file
+    const blob = new Blob([fullReport], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `debug-logs-${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    console.log('✅ Logs downloaded as file');
+    showStatus('Logs downloaded! Check your downloads.', false, false);
+    setTimeout(() => statusBox.style.display = 'none', 3000);
+
+  } catch (err) {
+    console.error('❌ Error sharing logs:', err);
+    showStatus('Failed to share logs: ' + err.message, false, true);
+  }
+});
+
 // Clear console button
 document.getElementById('clear-console-button').addEventListener('click', () => {
   debugConsoleElement.innerHTML = '';
+  logHistory = [];
   debugLog('Console cleared', 'log');
 });
 
@@ -1334,7 +1407,7 @@ function openDB() {
   });
 }
 
-// Save file to IndexedDB
+// Save file to IndexedDB as ArrayBuffer (preserves binary data)
 async function saveFileToIndexedDB(type, file) {
   try {
     const db = await openDB();
@@ -1349,11 +1422,17 @@ async function saveFileToIndexedDB(type, file) {
       isBlob: file instanceof Blob
     });
 
+    // Convert file to ArrayBuffer to preserve binary data
+    console.log(`🔄 Converting ${type} to ArrayBuffer...`);
+    const arrayBuffer = await file.arrayBuffer();
+    console.log(`✅ ArrayBuffer created, size:`, arrayBuffer.byteLength, 'bytes');
+
     await store.put({
       type: type,
-      file: file,
+      arrayBuffer: arrayBuffer,
       name: file.name,
       size: file.size,
+      mimeType: file.type,
       lastModified: file.lastModified
     });
 
@@ -1368,7 +1447,7 @@ async function saveFileToIndexedDB(type, file) {
   }
 }
 
-// Load file from IndexedDB
+// Load file from IndexedDB and reconstruct as Blob
 async function loadFileFromIndexedDB(type) {
   try {
     const db = await openDB();
@@ -1379,8 +1458,32 @@ async function loadFileFromIndexedDB(type) {
       const request = store.get(type);
       request.onsuccess = () => {
         if (request.result) {
-          console.log(`✅ Loaded ${type} from IndexedDB:`, request.result.name);
-          resolve(request.result);
+          const data = request.result;
+          console.log(`✅ Loaded ${type} from IndexedDB:`, data.name, 'Size:', data.size);
+
+          // Reconstruct File from ArrayBuffer
+          if (data.arrayBuffer) {
+            console.log(`🔄 Reconstructing ${type} from ArrayBuffer (${data.arrayBuffer.byteLength} bytes)...`);
+            const blob = new Blob([data.arrayBuffer], { type: data.mimeType });
+            const file = new File([blob], data.name, {
+              type: data.mimeType,
+              lastModified: data.lastModified
+            });
+            console.log(`✅ Reconstructed File:`, {
+              name: file.name,
+              size: file.size,
+              type: file.type
+            });
+            resolve({
+              file: file,
+              name: data.name,
+              size: data.size
+            });
+          } else {
+            // Fallback for old format (if exists)
+            console.log(`⚠️ Old format detected, using file directly`);
+            resolve(data);
+          }
         } else {
           resolve(null);
         }
