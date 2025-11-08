@@ -982,15 +982,34 @@ if (!saved) {
 console.error('❌ Failed to save MP3:', err);
 }
 
-// Simple blob URL approach (v16: reverted offline detection)
-console.log('🔗 Creating blob URL for audio...');
-if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
-  URL.revokeObjectURL(audioPlayer.src);
+// CRITICAL FIX: iOS Safari blob URL bug in PWA mode
+// Blob URLs don't work for audio decoding in iOS Safari PWAs
+// Solution: Use data URL (base64) instead
+console.log('🔄 Converting MP3 to data URL for iOS Safari PWA compatibility...');
+console.log('📊 File size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+
+try {
+  const dataURL = await loadMp3AsDataURL(file);
+  console.log('✅ Data URL created, length:', dataURL.length);
+
+  if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
+    URL.revokeObjectURL(audioPlayer.src);
+  }
+
+  audioPlayer.src = dataURL;
+  audioPlayer.load();
+  console.log('🎵 Audio player src set to data URL');
+} catch (err) {
+  console.error('❌ Data URL conversion failed:', err);
+  // Fallback to blob URL
+  console.warn('⚠️ Falling back to blob URL...');
+  if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
+    URL.revokeObjectURL(audioPlayer.src);
+  }
+  const url = URL.createObjectURL(file);
+  audioPlayer.src = url;
+  audioPlayer.load();
 }
-const url = URL.createObjectURL(file);
-console.log('✅ Blob URL created:', url);
-audioPlayer.src = url;
-audioPlayer.load();
 
 console.log('🎵 Audio player ready state:', audioPlayer.readyState);
 console.log('🎵 Audio player network state:', audioPlayer.networkState);
@@ -1224,7 +1243,7 @@ orientationChangeTimeout = setTimeout(() => {
 console.log('Orientation changed');
 }, 100);
 });
-const APP_VERSION = 'v16';
+const APP_VERSION = 'v17';
 console.log(`✅ PDF Audio Player ${APP_VERSION} loaded with highlighter toggle!`);
 
 // ========================================
@@ -1695,40 +1714,40 @@ async function restoreFilesFromCache() {
       // Store file for manual reload
       currentMp3File = mp3Data.file;
 
-      // Use blob URL (more efficient than data URL)
-      console.log('🔄 Creating blob URL from cached MP3...');
-      console.log('📊 File details:', {
-        name: mp3Data.file.name,
-        size: mp3Data.file.size,
-        type: mp3Data.file.type,
-        isFile: mp3Data.file instanceof File,
-        isBlob: mp3Data.file instanceof Blob
-      });
+      // Use data URL for iOS Safari PWA compatibility
+      console.log('🔄 Converting cached MP3 to data URL...');
+      console.log('📊 File size:', (mp3Data.file.size / 1024 / 1024).toFixed(2), 'MB');
 
-      if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
-        URL.revokeObjectURL(audioPlayer.src);
-      }
+      try {
+        const dataURL = await loadMp3AsDataURL(mp3Data.file);
+        console.log('✅ Data URL created, length:', dataURL.length);
 
-      const url = URL.createObjectURL(mp3Data.file);
-      console.log('✅ Blob URL created:', url);
-
-      audioPlayer.src = url;
-      audioPlayer.load(); // Force load
-      console.log('🎵 Audio player src set to blob URL');
-      console.log('🎵 Audio player ready state:', audioPlayer.readyState);
-      console.log('🎵 Audio player network state:', audioPlayer.networkState);
-
-      fileTracker.mp3 = true;
-      console.log('✅ MP3 restored from cache with blob URL');
-      checkAllFilesLoaded();
-
-      // Show manual button if it doesn't load after 5 seconds
-      setTimeout(() => {
-        if (audioPlayer.readyState === 0 || audioPlayer.readyState === 1) {
-          console.warn('⚠️ Audio metadata loaded but may need manual intervention');
-          forceLoadAudioButton.style.display = 'block';
+        if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
+          URL.revokeObjectURL(audioPlayer.src);
         }
-      }, 5000);
+
+        audioPlayer.src = dataURL;
+        audioPlayer.load();
+        console.log('🎵 Audio player src set to data URL');
+        console.log('🎵 Audio player ready state:', audioPlayer.readyState);
+        console.log('🎵 Audio player network state:', audioPlayer.networkState);
+
+        fileTracker.mp3 = true;
+        console.log('✅ MP3 restored from cache with data URL');
+        checkAllFilesLoaded();
+      } catch (err) {
+        console.error('❌ Data URL conversion failed:', err);
+        // Fallback to blob URL
+        console.warn('⚠️ Falling back to blob URL...');
+        if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
+          URL.revokeObjectURL(audioPlayer.src);
+        }
+        const url = URL.createObjectURL(mp3Data.file);
+        audioPlayer.src = url;
+        audioPlayer.load();
+        fileTracker.mp3 = true;
+        checkAllFilesLoaded();
+      }
     }
 
     // Restore JSON

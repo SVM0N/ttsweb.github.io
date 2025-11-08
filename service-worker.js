@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pdf-audio-player-v16';
+const CACHE_NAME = 'pdf-audio-player-v17';
 const urlsToCache = [
   './',
   './index.html',
