@@ -111,7 +111,13 @@ class TTSBackend(ABC):
         t = 0.0
         sentence_index = 0
 
-        print(f"Synthesizing {len(elements)} text elements...")
+        # Count total sentences for progress tracking
+        total_sentences = sum(
+            len([s for s in split_sentences_keep_delim(element.get("text", "")) if s])
+            for element in elements
+        )
+
+        print(f"Synthesizing {len(elements)} text elements ({total_sentences} sentences total)...")
 
         for element in elements:
             element_text = element.get("text", "")
@@ -137,6 +143,9 @@ class TTSBackend(ABC):
                 pcm_all.append(pcm)
                 t += dur
                 sentence_index += 1
+
+                # Print progress after each sentence
+                print(f"  Progress: {sentence_index}/{total_sentences} sentences ({sentence_index*100//total_sentences}%)")
 
         # Concatenate all audio
         pcm_cat = np.concatenate(pcm_all, axis=0) if pcm_all else np.zeros((sr // 10,), dtype=np.float32)
