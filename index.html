@@ -602,6 +602,9 @@ user-select: text;
 </div>
 <div style="margin-bottom: 12px;" id="collapsed-audio">
 <audio id="audio-player" controls disabled preload="auto"></audio>
+<button class="toggle-button" id="test-play-audio" style="display: none; margin-top: 8px; padding: 8px; font-size: 13px; background: linear-gradient(135deg, rgba(52, 199, 89, 0.15) 0%, rgba(52, 199, 89, 0.1) 100%); color: rgba(30, 132, 73, 1);">
+▶️ Test Play Audio
+</button>
 <button class="toggle-button" id="force-load-audio" style="display: none; margin-top: 8px; padding: 8px; font-size: 13px; background: linear-gradient(135deg, rgba(52, 199, 89, 0.15) 0%, rgba(52, 199, 89, 0.1) 100%); color: rgba(30, 132, 73, 1);">
 🔄 Force Load Audio
 </button>
@@ -749,6 +752,7 @@ const zoomInButton = document.getElementById('zoom-in');
 const zoomOutButton = document.getElementById('zoom-out');
 const zoomValueDisplay = document.getElementById('zoom-value');
 const forceLoadAudioButton = document.getElementById('force-load-audio');
+const testPlayAudioButton = document.getElementById('test-play-audio');
 let currentMp3File = null; // Store the current MP3 file for manual reloading
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 const darkModeToggle = document.getElementById('dark-mode-toggle');
@@ -920,10 +924,23 @@ if (!audioPlayer.hasAttribute('data-listeners-added')) {
   audioPlayer.setAttribute('data-listeners-added', 'true');
 
   audioPlayer.addEventListener('loadstart', () => console.log('🎵 Audio: loadstart'));
-  audioPlayer.addEventListener('loadedmetadata', () => console.log('✅ Audio: loadedmetadata'));
+  audioPlayer.addEventListener('loadedmetadata', () => {
+    console.log('✅ Audio: loadedmetadata');
+    console.log('   Duration:', audioPlayer.duration);
+    console.log('   ReadyState:', audioPlayer.readyState);
+    console.log('   NetworkState:', audioPlayer.networkState);
+    console.log('   Paused:', audioPlayer.paused);
+    console.log('   Disabled:', audioPlayer.disabled);
+
+    // Show test play button when metadata loads
+    testPlayAudioButton.style.display = 'block';
+  });
   audioPlayer.addEventListener('loadeddata', () => console.log('✅ Audio: loadeddata'));
   audioPlayer.addEventListener('canplay', () => console.log('✅ Audio: canplay'));
   audioPlayer.addEventListener('canplaythrough', () => console.log('✅ Audio: canplaythrough'));
+  audioPlayer.addEventListener('play', () => console.log('▶️ Audio: play event'));
+  audioPlayer.addEventListener('playing', () => console.log('▶️ Audio: playing'));
+  audioPlayer.addEventListener('pause', () => console.log('⏸️ Audio: pause event'));
   audioPlayer.addEventListener('error', (e) => {
     console.error('❌ Audio Error:', {
       error: audioPlayer.error,
@@ -1569,6 +1586,51 @@ async function loadMp3AsDataURL(file) {
     reader.readAsDataURL(file);
   });
 }
+
+// Test play audio button handler
+testPlayAudioButton.addEventListener('click', async () => {
+  console.log('🧪 Testing audio playback...');
+  console.log('   Current state:', {
+    src: audioPlayer.src.substring(0, 50) + '...',
+    readyState: audioPlayer.readyState,
+    networkState: audioPlayer.networkState,
+    paused: audioPlayer.paused,
+    disabled: audioPlayer.disabled,
+    duration: audioPlayer.duration,
+    currentTime: audioPlayer.currentTime
+  });
+
+  if (audioPlayer.disabled) {
+    console.warn('⚠️ Audio player is disabled, enabling it...');
+    audioPlayer.disabled = false;
+  }
+
+  try {
+    console.log('▶️ Attempting to play...');
+    const playPromise = audioPlayer.play();
+
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log('✅ Play succeeded!');
+          testPlayAudioButton.textContent = '✅ Playing!';
+          setTimeout(() => {
+            testPlayAudioButton.style.display = 'none';
+          }, 2000);
+        })
+        .catch(error => {
+          console.error('❌ Play failed:', {
+            name: error.name,
+            message: error.message,
+            code: error.code
+          });
+          testPlayAudioButton.textContent = '❌ Play Failed: ' + error.name;
+        });
+    }
+  } catch (err) {
+    console.error('❌ Exception when trying to play:', err);
+  }
+});
 
 // Force load audio button handler
 forceLoadAudioButton.addEventListener('click', async () => {
