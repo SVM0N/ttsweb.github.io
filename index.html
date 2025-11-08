@@ -1332,6 +1332,14 @@ async function saveFileToIndexedDB(type, file) {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
 
+    console.log(`💾 Saving ${type} to IndexedDB:`, {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      isFile: file instanceof File,
+      isBlob: file instanceof Blob
+    });
+
     await store.put({
       type: type,
       file: file,
@@ -1340,7 +1348,7 @@ async function saveFileToIndexedDB(type, file) {
       lastModified: file.lastModified
     });
 
-    console.log(`✅ Saved ${type} file to IndexedDB:`, file.name);
+    console.log(`✅ Saved ${type} file to IndexedDB:`, file.name, 'Size:', file.size, 'bytes');
     return new Promise((resolve, reject) => {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
@@ -1596,6 +1604,7 @@ testPlayAudioButton.addEventListener('click', async () => {
   console.log('🧪 Testing audio playback...');
   console.log('   Current state:', {
     src: audioPlayer.src.substring(0, 50) + '...',
+    srcLength: audioPlayer.src.length,
     readyState: audioPlayer.readyState,
     networkState: audioPlayer.networkState,
     paused: audioPlayer.paused,
@@ -1609,6 +1618,17 @@ testPlayAudioButton.addEventListener('click', async () => {
     audioPlayer.disabled = false;
   }
 
+  // Check if we have the file in memory
+  if (currentMp3File) {
+    console.log('📁 Current MP3 file in memory:', {
+      name: currentMp3File.name,
+      size: currentMp3File.size,
+      type: currentMp3File.type
+    });
+  } else {
+    console.warn('⚠️ No MP3 file in currentMp3File variable!');
+  }
+
   try {
     console.log('▶️ Attempting to play...');
     const playPromise = audioPlayer.play();
@@ -1616,14 +1636,36 @@ testPlayAudioButton.addEventListener('click', async () => {
     if (playPromise !== undefined) {
       playPromise
         .then(() => {
-          console.log('✅ Play succeeded!');
-          testPlayAudioButton.textContent = '✅ Playing!';
+          console.log('✅ Play promise succeeded!');
+
+          // Check if it's actually playing after 1 second
           setTimeout(() => {
-            testPlayAudioButton.style.display = 'none';
-          }, 2000);
+            console.log('🔍 Checking playback after 1 second...');
+            console.log('   CurrentTime:', audioPlayer.currentTime);
+            console.log('   Paused:', audioPlayer.paused);
+            console.log('   ReadyState:', audioPlayer.readyState);
+
+            if (audioPlayer.currentTime === 0 && !audioPlayer.paused) {
+              console.error('❌ Play succeeded but audio stuck at 0:00!');
+              console.error('   This means the audio data is likely empty or corrupt');
+              testPlayAudioButton.textContent = '❌ Audio Data Issue';
+
+              // Try to reload with the file we have in memory
+              if (currentMp3File) {
+                console.log('🔄 Attempting to reload audio from file...');
+                forceLoadAudioButton.style.display = 'block';
+              }
+            } else if (audioPlayer.currentTime > 0) {
+              console.log('✅ Audio is actually playing! CurrentTime:', audioPlayer.currentTime);
+              testPlayAudioButton.textContent = '✅ Playing!';
+              setTimeout(() => {
+                testPlayAudioButton.style.display = 'none';
+              }, 2000);
+            }
+          }, 1000);
         })
         .catch(error => {
-          console.error('❌ Play failed:', {
+          console.error('❌ Play promise failed:', {
             name: error.name,
             message: error.message,
             code: error.code
