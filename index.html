@@ -932,16 +932,8 @@ currentUserPage = null;
 currentAudioPage = null;
 if (intersectionObserver) intersectionObserver.disconnect();
 
-// Save to Cache API for offline access (with IndexedDB fallback)
-try {
-const saved = await saveFileToCache('pdf', file);
-if (!saved) {
-  console.warn('⚠️ Cache API failed, trying IndexedDB fallback...');
-  await saveFileToIndexedDB('pdf', file);
-}
-} catch (err) {
-console.error('Failed to save PDF:', err);
-}
+// v18-simple: NO CACHING
+console.log('📄 Loading PDF (no caching)...');
 
 const fileReader = new FileReader();
 fileReader.onload = function() {
@@ -971,70 +963,30 @@ console.log('📁 MP3 File Details:', {
   lastModified: file.lastModified
 });
 
-// Save to Cache API for offline access (with IndexedDB fallback)
-try {
-const saved = await saveFileToCache('mp3', file);
-if (!saved) {
-  console.warn('⚠️ Cache API failed, trying IndexedDB fallback...');
-  await saveFileToIndexedDB('mp3', file);
+// v18-simple: NO STORAGE, just direct blob URL
+console.log('🔗 Creating simple blob URL (no caching)...');
+if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
+  URL.revokeObjectURL(audioPlayer.src);
 }
-} catch (err) {
-console.error('❌ Failed to save MP3:', err);
-}
-
-// CRITICAL FIX: iOS Safari blob URL bug in PWA mode
-// Blob URLs don't work for audio decoding in iOS Safari PWAs
-// Solution: Use data URL (base64) instead
-console.log('🔄 Converting MP3 to data URL for iOS Safari PWA compatibility...');
-console.log('📊 File size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
-
-try {
-  const dataURL = await loadMp3AsDataURL(file);
-  console.log('✅ Data URL created, length:', dataURL.length);
-
-  if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
-    URL.revokeObjectURL(audioPlayer.src);
-  }
-
-  audioPlayer.src = dataURL;
-  audioPlayer.load();
-  console.log('🎵 Audio player src set to data URL');
-} catch (err) {
-  console.error('❌ Data URL conversion failed:', err);
-  // Fallback to blob URL
-  console.warn('⚠️ Falling back to blob URL...');
-  if (audioPlayer.src && audioPlayer.src.startsWith('blob:')) {
-    URL.revokeObjectURL(audioPlayer.src);
-  }
-  const url = URL.createObjectURL(file);
-  audioPlayer.src = url;
-  audioPlayer.load();
-}
+const url = URL.createObjectURL(file);
+console.log('✅ Blob URL created:', url);
+audioPlayer.src = url;
+audioPlayer.load();
 
 console.log('🎵 Audio player ready state:', audioPlayer.readyState);
 console.log('🎵 Audio player network state:', audioPlayer.networkState);
 
 fileTracker.mp3 = true;
-checkAllFilesLoaded();
-
-// Store file for manual reload
 currentMp3File = file;
+checkAllFilesLoaded();
 }
 async function handleJsonUpload(e) {
 const file = e.target.files[0];
 if (!file) return;
 document.getElementById('json-file-name').textContent = file.name;
 
-// Save to Cache API for offline access (with IndexedDB fallback)
-try {
-const saved = await saveFileToCache('json', file);
-if (!saved) {
-  console.warn('⚠️ Cache API failed, trying IndexedDB fallback...');
-  await saveFileToIndexedDB('json', file);
-}
-} catch (err) {
-console.error('Failed to save JSON:', err);
-}
+// v18-simple: NO CACHING
+console.log('📋 Loading JSON (no caching)...');
 
 const fileReader = new FileReader();
 fileReader.onload = function() {
@@ -1243,7 +1195,7 @@ orientationChangeTimeout = setTimeout(() => {
 console.log('Orientation changed');
 }, 100);
 });
-const APP_VERSION = 'v17';
+const APP_VERSION = 'v18-simple';
 console.log(`✅ PDF Audio Player ${APP_VERSION} loaded with highlighter toggle!`);
 
 // ========================================
@@ -2022,10 +1974,12 @@ forceLoadAudioButton.addEventListener('click', async () => {
   }
 });
 
+// v18-simple: DISABLED cache restoration
 // Restore files from Cache on page load
-window.addEventListener('load', () => {
-  restoreFilesFromCache();
-});
+// window.addEventListener('load', () => {
+//   restoreFilesFromCache();
+// });
+console.log('⚠️ v18-simple: Cache restoration DISABLED - no offline support');
 
 // Reset data button handler
 document.getElementById('reset-data-button').addEventListener('click', async () => {
