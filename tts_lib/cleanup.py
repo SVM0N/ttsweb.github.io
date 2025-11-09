@@ -97,8 +97,69 @@ def delete_cache(cache_name):
         return False
 
 
+def list_cache_sizes():
+    """List all caches with their sizes and existence status.
+
+    Returns:
+        Dictionary mapping cache names to (exists, size_bytes, path)
+    """
+    home = Path.home()
+
+    cache_paths = {
+        "huggingface": home / ".cache" / "huggingface",
+        "torch_hub": home / ".cache" / "torch" / "hub",
+        "torch_checkpoints": home / ".cache" / "torch" / "checkpoints",
+        "detectron2": home / ".torch" / "fvcore_cache" / "detectron2",
+        "kokoro": home / ".cache" / "kokoro",
+        "pip": home / ".cache" / "pip",
+    }
+
+    cache_info = {}
+    for name, path in cache_paths.items():
+        if path.exists():
+            size = get_dir_size(path)
+            cache_info[name] = (True, size, path)
+        else:
+            cache_info[name] = (False, 0, path)
+
+    return cache_info
+
+
 def interactive_cache_cleanup():
     """Interactive cache cleanup with user prompts."""
+    print("=" * 80)
+    print("CACHE INSPECTION & CLEANUP")
+    print("=" * 80)
+    print()
+
+    # Show current cache status
+    cache_info = list_cache_sizes()
+    total_size = 0
+
+    print("Current cache status:")
+    print("-" * 80)
+    cache_display = {
+        "huggingface": "HuggingFace Cache",
+        "torch_hub": "Torch Hub",
+        "torch_checkpoints": "Torch Checkpoints",
+        "detectron2": "Detectron2",
+        "kokoro": "Kokoro Models",
+        "pip": "Pip Cache",
+    }
+
+    for cache_name, display_name in cache_display.items():
+        exists, size, path = cache_info[cache_name]
+        if exists:
+            size_str = format_bytes(size)
+            print(f"  ✓ {display_name:25s} {size_str:>12s}  ({path})")
+            total_size += size
+        else:
+            print(f"  ✗ {display_name:25s} {'Not found':>12s}")
+
+    print("-" * 80)
+    print(f"  TOTAL:                      {format_bytes(total_size):>12s}")
+    print()
+
     print("=" * 80)
     print("DELETE CACHE OPTIONS")
     print("=" * 80)
