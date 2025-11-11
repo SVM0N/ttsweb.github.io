@@ -90,20 +90,50 @@ def install_dependencies(
         print("\n📄 Installing PDF extractor dependencies...")
 
         if pdf_extractor == "unstructured":
-            unstructured_packages = [
-                "unstructured[local-inference]",
-                "detectron2@git+https://github.com/facebookresearch/detectron2.git@v0.6#egg=detectron2"
-            ]
-            for pkg in unstructured_packages:
+            # Install unstructured first
+            try:
+                __import__("unstructured")
+                print(f"✓ unstructured already installed")
+            except ImportError:
+                install_package("unstructured[local-inference]")
+
+            # Install detectron2 with smart wheel detection
+            try:
+                __import__("detectron2")
+                print(f"✓ detectron2 already installed")
+            except ImportError:
+                print("Installing detectron2 (detecting optimal method)...")
                 try:
-                    if "detectron2" in pkg:
-                        __import__("detectron2")
-                        print(f"✓ detectron2 already installed")
+                    import torch
+
+                    # Get CUDA and PyTorch versions
+                    if torch.cuda.is_available():
+                        cuda_version = torch.version.cuda.replace(".", "")
+                        torch_version = ".".join(torch.__version__.split(".")[:2])
+
+                        # Try pre-built wheel first (fast)
+                        wheel_url = f"https://dl.fbaipublicfiles.com/detectron2/wheels/cu{cuda_version}/torch{torch_version}/index.html"
+                        print(f"   → Attempting pre-built wheel for CUDA {torch.version.cuda}, PyTorch {torch_version}...")
+
+                        try:
+                            subprocess.check_call(
+                                [sys.executable, "-m", "pip", "install", "-q", "detectron2", "-f", wheel_url],
+                                stderr=subprocess.PIPE
+                            )
+                            print(f"✓ detectron2 installed (pre-built wheel)")
+                        except subprocess.CalledProcessError:
+                            # Fallback to building from source
+                            print(f"   → Pre-built wheel not available, building from source...")
+                            install_package("git+https://github.com/facebookresearch/detectron2.git@v0.6")
                     else:
-                        __import__("unstructured")
-                        print(f"✓ unstructured already installed")
-                except ImportError:
-                    install_package(pkg)
+                        # CPU-only installation
+                        print(f"   → No CUDA detected, building from source for CPU...")
+                        install_package("git+https://github.com/facebookresearch/detectron2.git@v0.6")
+
+                except Exception as e:
+                    print(f"   ⚠️  Error during smart detection: {e}")
+                    print(f"   → Falling back to standard installation...")
+                    install_package("git+https://github.com/facebookresearch/detectron2.git@v0.6")
 
         elif pdf_extractor == "pymupdf":
             try:
