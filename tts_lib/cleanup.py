@@ -1,6 +1,7 @@
 """Cleanup utilities for managing conda environments and model caches.
 
 This module provides functions for:
+- Setting up conda environments for notebook sessions
 - Deleting conda environments created during notebook sessions
 - Cleaning up model and package caches to free disk space
 """
@@ -8,6 +9,77 @@ This module provides functions for:
 import shutil
 import subprocess
 from pathlib import Path
+
+
+def interactive_conda_setup():
+    """Interactive conda environment setup for notebook sessions.
+
+    Returns:
+        Tuple of (environment_created_by_notebook, environment_name)
+    """
+    environment_created_by_notebook = False
+    environment_name = None
+
+    # Check if conda is installed
+    try:
+        result = subprocess.run(['conda', '--version'], capture_output=True, text=True, check=True)
+        conda_available = True
+        print(f"✓ Conda detected: {result.stdout.strip()}")
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        conda_available = False
+        print("✗ Conda not found - skipping environment management")
+        print("Packages will be installed in your current Python environment")
+        return environment_created_by_notebook, environment_name
+
+    print("\n" + "="*60)
+    print("ENVIRONMENT SETUP OPTIONS")
+    print("="*60)
+
+    choice = input("\nDo you want to:\n  [1] Create a NEW conda environment (recommended)\n  [2] Use an EXISTING environment\n  [3] Skip and use current environment\n\nEnter choice (1/2/3): ").strip()
+
+    if choice == "1":
+        env_name = input("\nEnter name for new environment (default: tts_unified): ").strip()
+        if not env_name:
+            env_name = "tts_unified"
+
+        print(f"\n→ Creating conda environment: {env_name}")
+        print("  This may take a few minutes...")
+
+        try:
+            subprocess.run(['conda', 'create', '-n', env_name, 'python=3.10', '-y'],
+                           check=True, capture_output=True)
+
+            environment_created_by_notebook = True
+            environment_name = env_name
+
+            print(f"✓ Environment '{env_name}' created successfully!")
+            print(f"\n{'='*60}")
+            print("IMPORTANT: Restart your Jupyter kernel and select the new environment:")
+            print(f"  Kernel → Change Kernel → {env_name}")
+            print(f"{'='*60}\n")
+
+        except subprocess.CalledProcessError as e:
+            print(f"✗ Failed to create environment: {e}")
+            print("Continuing with current environment...")
+
+    elif choice == "2":
+        env_name = input("\nEnter name of existing environment: ").strip()
+        if env_name:
+            environment_name = env_name
+            print(f"\n✓ Using existing environment: {env_name}")
+            print(f"\n{'='*60}")
+            print("IMPORTANT: Make sure your kernel is using this environment:")
+            print(f"  Kernel → Change Kernel → {env_name}")
+            print(f"{'='*60}\n")
+        else:
+            print("✗ No environment name provided - using current environment")
+
+    else:
+        print("\n✓ Using current environment")
+
+    print("\nYou can now proceed with the rest of the notebook.")
+
+    return environment_created_by_notebook, environment_name
 
 
 def get_dir_size(path):
