@@ -36,7 +36,34 @@ def install_dependencies(
 
     # Core dependencies (always needed)
     print("\n📦 Installing core dependencies...")
-    core_packages = ["torch", "soundfile", "numpy", "ebooklib", "pydub"]
+
+    # Install PyTorch with CUDA support if needed
+    try:
+        import torch
+        print(f"✓ torch already installed")
+    except ImportError:
+        # Detect if running in Colab (likely has GPU)
+        try:
+            import google.colab
+            in_colab = True
+        except ImportError:
+            in_colab = False
+
+        if in_colab:
+            print("Installing torch with CUDA support for Colab...")
+            # Install PyTorch with CUDA 12.1 support (Colab's default as of 2024)
+            subprocess.check_call([
+                sys.executable, "-m", "pip", "install", "-q",
+                "torch", "torchvision", "torchaudio",
+                "--index-url", "https://download.pytorch.org/whl/cu121"
+            ])
+            print("✓ torch installed with CUDA support")
+        else:
+            print("Installing torch (auto-detect CUDA)...")
+            install_package("torch")
+
+    # Install other core packages
+    core_packages = ["soundfile", "numpy", "ebooklib", "pydub"]
     for pkg in core_packages:
         try:
             __import__(pkg.replace("-", "_"))
