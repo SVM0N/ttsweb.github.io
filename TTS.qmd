@@ -1,0 +1,273 @@
+---
+title: Unified TTS Notebook
+jupyter: python3
+---
+
+
+**Single notebook for all TTS models and PDF extraction strategies**
+
+This notebook provides a unified interface for:
+- **TTS Models**: Kokoro (v0.9, v1.0), Maya1 (expressive, 20+ emotions), Silero v5
+- **PDF Extractors**: Unstructured, PyMuPDF, Apple Vision, Nougat
+- **Input Formats**: Text strings, PDF files, EPUB books
+- **Output Formats**: WAV, MP3 with timeline manifests
+
+The notebook will automatically install only the dependencies you need based on your selections!
+
+✅ **Works both locally and in Google Colab** - automatically detects environment and downloads required files.
+
+
+## 0a) Environment Detection & Setup
+
+**This cell automatically detects if you're running in Google Colab or locally.**
+
+If in Colab, it will download the required Python modules from the GitHub repository.
+
+```{python}
+import sysimport osfrom pathlib import Path# Detect if running in Google Colabtry:    import google.colab    IN_COLAB = True    print("🌐 Running in Google Colab")except ImportError:    IN_COLAB = False    print("💻 Running locally")# GitHub repository URL for downloading Python modulesGITHUB_RAW_URL = "https://raw.githubusercontent.com/SVM0N/ttsweb.github.io/main/"# Required Python modules (in tts_lib folder)REQUIRED_MODULES = [    "tts_lib/__init__.py",    "tts_lib/config.py",    "tts_lib/tts_backends.py",    "tts_lib/tts_utils.py",    "tts_lib/pdf_extractors.py",    "tts_lib/manifest.py",    "tts_lib/setup.py",    "tts_lib/init_system.py",    "tts_lib/synthesis.py",    "tts_lib/examples.py",    "tts_lib/cleanup.py"]if IN_COLAB:    print("\n📦 Setting up Colab environment...")    print("   Downloading required Python modules from GitHub...")        import urllib.request        # Create tts_lib directory    Path("tts_lib").mkdir(exist_ok=True)        for module in REQUIRED_MODULES:        url = GITHUB_RAW_URL + module        try:            print(f"   → Downloading {module}...")            urllib.request.urlretrieve(url, module)            print(f"   ✓ {module} downloaded")        except Exception as e:            print(f"   ✗ Failed to download {module}: {e}")            print(f"     URL: {url}")        # Create files directory for outputs    files_dir = Path("files")    files_dir.mkdir(exist_ok=True)    print(f"\n✓ Created output directory: {files_dir}")        # Install system dependencies for advanced PDF extraction    print("\n📦 Installing system dependencies for PDF extraction...")    print("   This enables 'hi_res' strategy in Unstructured for better layout detection")    get_ipython().system('apt-get update -qq')    get_ipython().system('apt-get install -y -qq poppler-utils tesseract-ocr')    print("   ✓ Poppler and Tesseract installed")        print("\n✓ Colab environment setup complete!")    print("  You can now proceed with the rest of the notebook.")    print("\n📝 Note: To upload PDFs or EPUBs, use the file upload button in the sidebar")    print("  or run: from google.colab import files; uploaded = files.upload()")    else:    print("\n✓ Local environment detected")    print("  Using local Python modules")        # Check if required modules exist locally    missing_modules = []    for module in REQUIRED_MODULES:        if not Path(module).exists():            missing_modules.append(module)        if missing_modules:        print(f"\n⚠️  Warning: Missing modules: {', '.join(missing_modules)}")        print("  Make sure you're running this notebook from the repository directory")    else:        print(f"  ✓ All required modules found")        # Check for optional system dependencies on macOS    import platform    if platform.system() == "Darwin":        print("\n📝 Optional: For better PDF extraction with Unstructured:")        print("   Run: brew install poppler tesseract")        print("   This enables 'hi_res' strategy for advanced layout detection")print("\n" + "="*60)
+```
+
+## 0b) Conda Environment Setup (Optional - Local Only)
+
+**This step helps you manage Python packages and avoid conflicts with your system installation.**
+
+- If you have **conda** installed, you can create a fresh environment for this notebook
+- Or use an existing environment by providing its name
+- At the end of the notebook, you can easily clean up and delete the environment to free storage
+- **Note**: This section is only relevant for local installations, not Google Colab
+
+```{python}
+from tts_lib.cleanup import interactive_conda_setup# Run interactive conda environment setupenvironment_created_by_notebook, environment_name = interactive_conda_setup()
+```
+
+## 1) Configuration - Choose Your Setup
+
+**Select which TTS model, PDF extractor, and formats you want to use.**
+
+The notebook will automatically install only the dependencies you need!
+
+```{python}
+# ========================================
+# CONVERSION TYPE SELECTION
+# ========================================
+# Choose ONE of the following:
+#   - "string": Convert text string to audio
+#   - "pdf": Convert PDF to audio
+#   - "epub": Convert EPUB to per-chapter audio ZIP
+
+CONVERSION_TYPE = "pdf"
+
+# ========================================
+# CONVERSION-SPECIFIC PARAMETERS
+# ========================================
+
+# For PDF conversion:
+PDF_PATH = "files/doc.pdf"  # Path to your PDF file
+PDF_PAGES = None  # None = all pages, or [1, 2, 3] for specific pages
+
+# For EPUB conversion:
+EPUB_PATH = "book.epub"  # Path to your EPUB file
+ZIP_NAME = ""  # Optional custom name for ZIP file
+
+# For string conversion:
+# Edit the text in tts_lib/examples.py if needed
+
+# ========================================
+# TTS MODEL SELECTION
+# ========================================
+# Choose ONE of the following:
+#   - "kokoro_0.9": Kokoro v0.9+ (10 voices, English-focused, stable)
+#   - "kokoro_1.0": Kokoro v1.0 (54 voices, 8 languages, latest)
+#   - "maya1": Maya1 (20+ emotions, natural language voices, expressive, requires GPU)
+#   - "silero_v5": Silero v5 (Russian language, 6 speakers)
+
+TTS_MODEL = "kokoro_1.0"
+
+# ========================================
+# PDF EXTRACTOR SELECTION
+# ========================================
+# Choose ONE of the following (only required if CONVERSION_TYPE is "pdf"):
+#   - "unstructured": Advanced layout analysis (recommended, ~500MB dependencies)
+#   - "pymupdf": Fast extraction for clean PDFs (~15MB, lightweight)
+#   - "vision": OCR for scanned PDFs (macOS only)
+#   - "nougat": Academic papers with equations (~1.5GB model)
+#   - None: Skip PDF extraction (only for text/EPUB conversions)
+
+PDF_EXTRACTOR = "unstructured"
+
+# ========================================
+# OUTPUT FORMAT
+# ========================================
+# Choose your output audio format:
+
+OUTPUT_FORMAT = "mp3"  # "mp3" or "wav"
+
+# ========================================
+# DEVICE CONFIGURATION
+# ========================================
+# Device to use for TTS synthesis:
+#   - "auto": Automatically select best device (CUDA > MPS > CPU)
+#   - "cuda": Force CUDA/GPU (required for Maya1)
+#   - "cpu": Force CPU
+#   - "mps": Force Apple Silicon MPS
+
+DEVICE = "auto"
+
+# ========================================
+# OUTPUT DIRECTORY
+# ========================================
+# Directory where generated files will be saved
+
+OUTPUT_DIR = "files"  # Files directory for PDFs and outputs
+
+# ========================================
+# VALIDATION
+# ========================================
+if CONVERSION_TYPE == "pdf" and PDF_EXTRACTOR is None:
+    print("⚠️  WARNING: PDF conversion selected but no PDF extractor configured!")
+    print("   Set PDF_EXTRACTOR to 'unstructured', 'pymupdf', 'vision', or 'nougat'")
+
+if TTS_MODEL == "maya1":
+    import torch
+    if not torch.cuda.is_available():
+        print("⚠️  WARNING: Maya1 requires CUDA GPU!")
+        print("   Maya1 will not work properly on CPU or MPS.")
+        print("   Consider using Kokoro or Silero models instead.")
+
+print("="*60)
+print("CONFIGURATION SUMMARY")
+print("="*60)
+print(f"Conversion Type: {CONVERSION_TYPE.upper()}")
+print(f"TTS Model: {TTS_MODEL}")
+print(f"PDF Extractor: {PDF_EXTRACTOR or 'None'}")
+print(f"Output Format: {OUTPUT_FORMAT.upper()}")
+print(f"Device: {DEVICE}")
+print(f"Output Directory: {OUTPUT_DIR}")
+print("="*60)
+```
+
+## 1.5) Apple Silicon (MPS) Fix
+
+**Automatically detect and fix Apple Silicon compatibility issues.**
+
+If you're on Apple Silicon, this will enable CPU fallback for unsupported operations.
+
+```{python}
+import os
+import platform
+
+# Check if we're on macOS with Apple Silicon
+is_apple_silicon = (
+    platform.system() == "Darwin" and
+    platform.machine() == "arm64"
+)
+
+if is_apple_silicon:
+    print("🍎 Apple Silicon detected")
+    print("   Enabling MPS fallback for unsupported operations...")
+
+    # Set environment variable to enable CPU fallback for unsupported MPS operations
+    # This fixes the 'aten::angle not implemented for MPS' error
+    os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
+
+    print("   ✓ MPS fallback enabled")
+    print("   Note: Some operations will fall back to CPU (slightly slower but works)")
+else:
+    print("✓ No Apple Silicon-specific fixes needed")
+```
+
+## 2) Install Dependencies
+
+**Running automatic dependency installation...**
+
+This will install only what you need based on your configuration.
+
+```{python}
+from tts_lib.setup import install_dependencies
+
+# Install dependencies based on configuration
+install_dependencies(
+    tts_model=TTS_MODEL,
+    pdf_extractor=PDF_EXTRACTOR,
+    conversion_type=CONVERSION_TYPE,
+    out_format=OUTPUT_FORMAT
+)
+
+print("\n🚀 Ready to initialize system!")
+```
+
+## 3) Initialize TTS System
+
+**Loading TTS model and PDF extractor...**
+
+```{python}
+from tts_lib.init_system import initialize_system
+
+# Initialize TTS backend, config, and PDF extractor
+tts, config, pdf_extractor = initialize_system(
+    tts_model=TTS_MODEL,
+    output_dir=OUTPUT_DIR,
+    device=DEVICE,
+    pdf_extractor_name=PDF_EXTRACTOR,
+    conversion_type=CONVERSION_TYPE
+)
+```
+
+## 4) Run Conversion
+
+Run the conversion based on your selected type from Section 1.
+
+```{python}
+from tts_lib.examples import run_conversion
+
+# Run the conversion
+result = run_conversion(
+    conversion_type=CONVERSION_TYPE,
+    tts=tts,
+    config=config,
+    pdf_extractor=pdf_extractor,
+    tts_model=TTS_MODEL,
+    out_format=OUTPUT_FORMAT,
+    pdf_path=PDF_PATH,
+    pdf_pages=PDF_PAGES,
+    epub_path=EPUB_PATH,
+    zip_name=ZIP_NAME
+)
+```
+
+## 5) Optional Cleanup Sections
+
+The following sections help you manage storage and environments.
+
+### 5a) Delete Conda Environment (Optional)
+
+If you created a new environment at the beginning of this notebook, you can delete it here to free up storage space.
+
+⚠️ **Warning**: This will permanently delete the environment and all installed packages!
+
+```{python}
+from tts_lib.cleanup import delete_conda_environment
+
+# Delete conda environment if created by this notebook
+if 'environment_created_by_notebook' not in globals():
+    print("✗ No environment tracking found")
+    print("This cell only works if you ran the environment setup cell at the beginning")
+else:
+    success, environment_created_by_notebook, environment_name = delete_conda_environment(
+        environment_name,
+        environment_created_by_notebook
+    )
+```
+
+### 5b) Delete Model Caches (Optional)
+
+Delete downloaded models and caches to free up disk space.
+
+⚠️ **Warning**: Models will need to be re-downloaded if you run the notebook again!
+
+```{python}
+from tts_lib.cleanup import interactive_cache_cleanup
+
+# Run interactive cache cleanup
+interactive_cache_cleanup()
+```
