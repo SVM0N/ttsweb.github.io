@@ -24,7 +24,95 @@ The notebook will automatically install only the dependencies you need based on 
 If in Colab, it will download the required Python modules from the GitHub repository.
 
 ```{python}
-import sysimport osfrom pathlib import Path# Detect if running in Google Colabtry:    import google.colab    IN_COLAB = True    print("🌐 Running in Google Colab")except ImportError:    IN_COLAB = False    print("💻 Running locally")# GitHub repository URL for downloading Python modulesGITHUB_RAW_URL = "https://raw.githubusercontent.com/SVM0N/ttsweb.github.io/main/"# Required Python modules (in tts_lib folder)REQUIRED_MODULES = [    "tts_lib/__init__.py",    "tts_lib/config.py",    "tts_lib/tts_backends.py",    "tts_lib/tts_utils.py",    "tts_lib/pdf_extractors.py",    "tts_lib/manifest.py",    "tts_lib/setup.py",    "tts_lib/init_system.py",    "tts_lib/synthesis.py",    "tts_lib/examples.py",    "tts_lib/cleanup.py"]if IN_COLAB:    print("\n📦 Setting up Colab environment...")    print("   Downloading required Python modules from GitHub...")        import urllib.request        # Create tts_lib directory    Path("tts_lib").mkdir(exist_ok=True)        for module in REQUIRED_MODULES:        url = GITHUB_RAW_URL + module        try:            print(f"   → Downloading {module}...")            urllib.request.urlretrieve(url, module)            print(f"   ✓ {module} downloaded")        except Exception as e:            print(f"   ✗ Failed to download {module}: {e}")            print(f"     URL: {url}")        # Create files directory for outputs    files_dir = Path("files")    files_dir.mkdir(exist_ok=True)    print(f"\n✓ Created output directory: {files_dir}")        # Install system dependencies for advanced PDF extraction    print("\n📦 Installing system dependencies for PDF extraction...")    print("   This enables 'hi_res' strategy in Unstructured for better layout detection")    get_ipython().system('apt-get update -qq')    get_ipython().system('apt-get install -y -qq poppler-utils tesseract-ocr')    print("   ✓ Poppler and Tesseract installed")        print("\n✓ Colab environment setup complete!")    print("  You can now proceed with the rest of the notebook.")    print("\n📝 Note: To upload PDFs or EPUBs, use the file upload button in the sidebar")    print("  or run: from google.colab import files; uploaded = files.upload()")    else:    print("\n✓ Local environment detected")    print("  Using local Python modules")        # Check if required modules exist locally    missing_modules = []    for module in REQUIRED_MODULES:        if not Path(module).exists():            missing_modules.append(module)        if missing_modules:        print(f"\n⚠️  Warning: Missing modules: {', '.join(missing_modules)}")        print("  Make sure you're running this notebook from the repository directory")    else:        print(f"  ✓ All required modules found")        # Check for optional system dependencies on macOS    import platform    if platform.system() == "Darwin":        print("\n📝 Optional: For better PDF extraction with Unstructured:")        print("   Run: brew install poppler tesseract")        print("   This enables 'hi_res' strategy for advanced layout detection")print("\n" + "="*60)
+import sys
+import osfrom pathlib import Path
+# Detect if running in Google Colabtry:
+try:
+    import google.colab
+    IN_COLAB = True
+    print("🌐 Running in Google Colab")
+except ImportError:
+    IN_COLAB = False
+    print("💻 Running locally")
+
+# GitHub repository URL for downloading Python modules
+GITHUB_RAW_URL = "https://raw.githubusercontent.com/SVM0N/ttsweb.github.io/main/"
+
+# Required Python modules (in tts_lib folder)
+REQUIRED_MODULES = [
+    "tts_lib/__init__.py",
+    "tts_lib/config.py",
+    "tts_lib/tts_backends.py",
+    "tts_lib/tts_utils.py",
+    "tts_lib/pdf_extractors.py",
+    "tts_lib/manifest.py",
+    "tts_lib/setup.py",
+    "tts_lib/init_system.py",
+    "tts_lib/synthesis.py",
+    "tts_lib/examples.py",
+    "tts_lib/cleanup.py"
+]
+
+if IN_COLAB:
+    print("\n📦 Setting up Colab environment...")
+    print("   Downloading required Python modules from GitHub...")
+    
+    import urllib.request
+    
+    # Create tts_lib directory
+    Path("tts_lib").mkdir(exist_ok=True)
+    
+    for module in REQUIRED_MODULES:
+        url = GITHUB_RAW_URL + module
+        try:
+            print(f"   → Downloading {module}...")
+            urllib.request.urlretrieve(url, module)
+            print(f"   ✓ {module} downloaded")
+        except Exception as e:
+            print(f"   ✗ Failed to download {module}: {e}")
+            print(f"     URL: {url}")
+    
+    # Create files directory for outputs
+    files_dir = Path("files")
+    files_dir.mkdir(exist_ok=True)
+    print(f"\n✓ Created output directory: {files_dir}")
+    
+    # Install system dependencies for advanced PDF extraction
+    print("\n📦 Installing system dependencies for PDF extraction...")
+    print("   This enables 'hi_res' strategy in Unstructured for better layout detection")
+    get_ipython().system('apt-get update -qq')
+    get_ipython().system('apt-get install -y -qq poppler-utils tesseract-ocr')
+    print("   ✓ Poppler and Tesseract installed")
+    
+    print("\n✓ Colab environment setup complete!")
+    print("  You can now proceed with the rest of the notebook.")
+    print("\n📝 Note: To upload PDFs or EPUBs, use the file upload button in the sidebar")
+    print("  or run: from google.colab import files; uploaded = files.upload()")
+    
+else:
+    print("\n✓ Local environment detected")
+    print("  Using local Python modules")
+    
+    # Check if required modules exist locally
+    missing_modules = []
+    for module in REQUIRED_MODULES:
+        if not Path(module).exists():
+            missing_modules.append(module)
+    
+    if missing_modules:
+        print(f"\n⚠️  Warning: Missing modules: {', '.join(missing_modules)}")
+        print("  Make sure you're running this notebook from the repository directory")
+    else:
+        print(f"  ✓ All required modules found")
+    
+    # Check for optional system dependencies on macOS
+    import platform
+    if platform.system() == "Darwin":
+        print("\n📝 Optional: For better PDF extraction with Unstructured:")
+        print("   Run: brew install poppler tesseract")
+        print("   This enables 'hi_res' strategy for advanced layout detection")
+
+print("\n" + "="*60)
 ```
 
 ## 0b) Conda Environment Setup (Optional - Local Only)
@@ -37,7 +125,9 @@ import sysimport osfrom pathlib import Path# Detect if running in Google Colabtr
 - **Note**: This section is only relevant for local installations, not Google Colab
 
 ```{python}
-from tts_lib.cleanup import interactive_conda_setup# Run interactive conda environment setupenvironment_created_by_notebook, environment_name = interactive_conda_setup()
+from tts_lib.cleanup import interactive_conda_setup
+# Run interactive conda environment setup
+environment_created_by_notebook, environment_name = interactive_conda_setup()
 ```
 
 ## 1) Configuration - Choose Your Setup
