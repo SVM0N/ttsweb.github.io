@@ -73,7 +73,29 @@ def install_dependencies(
     # STT model dependencies
     print("\n🎤 Installing STT model dependencies...")
 
-    if stt_model.startswith("whisper-"):
+    if stt_model.startswith("whisperx-"):
+        # WhisperX with diarization
+        try:
+            import whisperx
+            print(f"✓ whisperx already installed")
+        except ImportError:
+            install_package("git+https://github.com/m-bain/whisperx.git")
+
+        # Install pyannote for speaker diarization
+        try:
+            import pyannote.audio
+            print(f"✓ pyannote.audio already installed")
+        except ImportError:
+            install_package("pyannote.audio")
+
+        print("\n📝 NOTE: WhisperX provides:")
+        print("   - Word-level timestamps (more precise than Whisper)")
+        print("   - Speaker diarization (separates different speakers)")
+        print("   - Requires HuggingFace token for diarization")
+        print("   - Get token: https://huggingface.co/settings/tokens")
+        print("   - Accept pyannote terms: https://huggingface.co/pyannote/speaker-diarization")
+
+    elif stt_model.startswith("whisper-"):
         # Standard OpenAI Whisper
         try:
             import whisper

@@ -3,6 +3,7 @@
 This module provides backend classes for:
 - OpenAI Whisper (tiny, base, small, medium, large)
 - Faster-Whisper (optimized versions)
+- WhisperX (with speaker diarization and word-level timestamps)
 
 Supports both audio and video files (MP4, MOV, AVI, etc.) by extracting audio.
 """
@@ -262,12 +263,173 @@ class FasterWhisperBackend:
                 print(f"✓ Cleaned up temporary audio file")
 
 
-def get_stt_backend(model_name: str, device: str = "cpu"):
+class WhisperXBackend:
+    """Backend for WhisperX with speaker diarization and word-level timestamps."""
+
+    def __init__(
+        self,
+        model_size: str = "base",
+        device: str = "cpu",
+        compute_type: str = "int8",
+        hf_token: Optional[str] = None
+    ):
+        """Initialize WhisperX backend.
+
+        Args:
+            model_size: Model size ("tiny", "base", "small", "medium", "large-v2")
+            device: Device to use ("cuda" or "cpu")
+            compute_type: Compute type ("int8", "float16", "float32")
+            hf_token: HuggingFace token for pyannote speaker diarization model
+        """
+        import whisperx
+
+        self.model_size = model_size
+        self.device = device
+        self.compute_type = compute_type
+        self.hf_token = hf_token
+
+        print(f"Loading WhisperX {model_size} model...")
+        self.model = whisperx.load_model(
+            model_size,
+            device=device,
+            compute_type=compute_type
+        )
+        print(f"✓ WhisperX {model_size} loaded on {device}")
+
+        # Will be loaded on-demand for alignment and diarization
+        self.align_model = None
+        self.align_metadata = None
+        self.diarize_model = None
+
+    def transcribe(
+        self,
+        audio_path: Union[str, Path],
+        language: Optional[str] = None,
+        task: str = "transcribe",
+        enable_diarization: bool = False,
+        min_speakers: Optional[int] = None,
+        max_speakers: Optional[int] = None
+    ) -> Dict:
+        """Transcribe audio or video file with optional speaker diarization.
+
+        Args:
+            audio_path: Path to audio or video file
+            language: Language code (None for auto-detect)
+            task: "transcribe" or "translate"
+            enable_diarization: Enable speaker diarization
+            min_speakers: Minimum number of speakers (for diarization)
+            max_speakers: Maximum number of speakers (for diarization)
+
+        Returns:
+            Dictionary with transcription results including:
+            - text: Full transcript
+            - segments: List of segments with timestamps
+            - language: Detected language
+            - word_segments: Word-level timestamps (if aligned)
+            - speakers: Speaker labels (if diarization enabled)
+        """
+        import whisperx
+
+        audio_path = Path(audio_path)
+        temp_audio_path = None
+
+        # Check if input is a video file
+        if is_video_file(audio_path):
+            temp_audio_path = extract_audio_from_video(audio_path)
+            actual_audio_path = temp_audio_path
+        else:
+            actual_audio_path = audio_path
+
+        try:
+            print(f"Transcribing with WhisperX: {audio_path.name}...")
+
+            # Load audio
+            audio = whisperx.load_audio(str(actual_audio_path))
+
+            # 1. Transcribe with WhisperX
+            result = self.model.transcribe(
+                audio,
+                language=language,
+                task=task
+            )
+
+            detected_language = result.get("language", language)
+            print(f"✓ Transcription complete (language: {detected_language})")
+
+            # 2. Align whisper output for word-level timestamps
+            if not self.align_model or self.align_metadata.get("language") != detected_language:
+                print(f"Loading alignment model for {detected_language}...")
+                self.align_model, self.align_metadata = whisperx.load_align_model(
+                    language_code=detected_language,
+                    device=self.device
+                )
+
+            result = whisperx.align(
+                result["segments"],
+                self.align_model,
+                self.align_metadata,
+                audio,
+                self.device,
+                return_char_alignments=False
+            )
+            print(f"✓ Alignment complete (word-level timestamps)")
+
+            # 3. Assign speaker labels (if enabled)
+            if enable_diarization:
+                if not self.hf_token:
+                    print("⚠️  WARNING: No HuggingFace token provided for diarization")
+                    print("   Set HF_TOKEN environment variable or pass hf_token parameter")
+                    print("   Get token from: https://huggingface.co/settings/tokens")
+                    print("   Skipping diarization...")
+                else:
+                    if not self.diarize_model:
+                        print("Loading speaker diarization model...")
+                        self.diarize_model = whisperx.DiarizationPipeline(
+                            use_auth_token=self.hf_token,
+                            device=self.device
+                        )
+
+                    print("Running speaker diarization...")
+                    diarize_segments = self.diarize_model(
+                        audio,
+                        min_speakers=min_speakers,
+                        max_speakers=max_speakers
+                    )
+
+                    result = whisperx.assign_word_speakers(diarize_segments, result)
+                    print(f"✓ Speaker diarization complete")
+
+            # Format result
+            segments_list = result.get("segments", [])
+            full_text = " ".join([seg.get("text", "") for seg in segments_list])
+
+            formatted_result = {
+                "text": full_text,
+                "segments": segments_list,
+                "language": detected_language,
+                "word_segments": result.get("word_segments", []),
+            }
+
+            return formatted_result
+
+        finally:
+            # Clean up temporary audio file
+            if temp_audio_path and temp_audio_path.exists():
+                temp_audio_path.unlink()
+                print(f"✓ Cleaned up temporary audio file")
+
+
+def get_stt_backend(
+    model_name: str,
+    device: str = "cpu",
+    hf_token: Optional[str] = None
+):
     """Factory function to get the appropriate STT backend.
 
     Args:
-        model_name: Model name (e.g., "whisper-base", "faster-whisper-small")
+        model_name: Model name (e.g., "whisper-base", "faster-whisper-small", "whisperx-base")
         device: Device to use ("cuda", "cpu", "mps")
+        hf_token: HuggingFace token (required for WhisperX diarization)
 
     Returns:
         STT backend instance
@@ -275,7 +437,22 @@ def get_stt_backend(model_name: str, device: str = "cpu"):
     Raises:
         ValueError: If model name is not recognized
     """
-    if model_name.startswith("whisper-"):
+    if model_name.startswith("whisperx-"):
+        # WhisperX models with diarization
+        model_size = model_name.replace("whisperx-", "")
+        # Determine compute type based on device
+        if device == "cuda":
+            compute_type = "float16"
+        else:
+            compute_type = "int8"
+        return WhisperXBackend(
+            model_size=model_size,
+            device=device,
+            compute_type=compute_type,
+            hf_token=hf_token
+        )
+
+    elif model_name.startswith("whisper-"):
         # Standard Whisper models
         model_size = model_name.replace("whisper-", "")
         return WhisperBackend(model_size=model_size, device=device)
@@ -288,5 +465,5 @@ def get_stt_backend(model_name: str, device: str = "cpu"):
     else:
         raise ValueError(
             f"Unknown STT model: {model_name}. "
-            f"Expected format: 'whisper-<size>' or 'faster-whisper-<size>'"
+            f"Expected format: 'whisper-<size>', 'faster-whisper-<size>', or 'whisperx-<size>'"
         )

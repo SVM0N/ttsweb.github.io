@@ -14,7 +14,10 @@ def run_transcription(
     audio_path: str,
     output_formats: Dict[str, bool],
     language: Optional[str] = None,
-    task: str = "transcribe"
+    task: str = "transcribe",
+    enable_diarization: bool = False,
+    min_speakers: Optional[int] = None,
+    max_speakers: Optional[int] = None
 ) -> Dict:
     """Run complete transcription workflow.
 
@@ -25,6 +28,9 @@ def run_transcription(
         output_formats: Dictionary of output formats to generate
         language: Language code (None for auto-detect)
         task: "transcribe" or "translate"
+        enable_diarization: Enable speaker diarization (WhisperX only)
+        min_speakers: Minimum number of speakers (for diarization)
+        max_speakers: Maximum number of speakers (for diarization)
 
     Returns:
         Dictionary with results and output file paths
@@ -44,11 +50,28 @@ def run_transcription(
 
     # Run transcription
     print("\n🎤 Transcribing audio...")
-    result = stt.transcribe(
-        audio_path=audio_path,
-        language=language,
-        task=task
-    )
+
+    # Check if backend supports diarization
+    if hasattr(stt, 'transcribe') and 'enable_diarization' in stt.transcribe.__code__.co_varnames:
+        # WhisperX backend - supports diarization
+        result = stt.transcribe(
+            audio_path=audio_path,
+            language=language,
+            task=task,
+            enable_diarization=enable_diarization,
+            min_speakers=min_speakers,
+            max_speakers=max_speakers
+        )
+    else:
+        # Standard Whisper or Faster-Whisper - no diarization
+        if enable_diarization:
+            print("⚠️  Speaker diarization requested but not supported by this model")
+            print("   Use WhisperX models for speaker diarization")
+        result = stt.transcribe(
+            audio_path=audio_path,
+            language=language,
+            task=task
+        )
 
     # Generate base output path (without extension)
     base_output_name = audio_path.stem + "_transcript"

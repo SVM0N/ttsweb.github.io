@@ -135,6 +135,7 @@ This project provides Jupyter notebooks that:
 **Supported STT Models:**
 - **Whisper** (tiny, base, small, medium, large) - OpenAI's speech recognition
 - **Faster-Whisper** (optimized versions) - 4x faster with same accuracy
+- **WhisperX** (tiny, base, small, medium, large-v2) - Word-level timestamps + speaker diarization
 
 **Supported Input Formats:**
 - **Audio**: MP3, WAV, M4A, FLAC, OGG
@@ -153,11 +154,33 @@ This project provides Jupyter notebooks that:
 - ⚡ Faster-Whisper for 4x speedup
 - 📊 Multiple output formats simultaneously
 - 🎬 Video file support (automatic audio extraction)
+- 👥 **Speaker Diarization**: WhisperX separates and labels different speakers
 - 🤖 **Smart defaults**: Automatically selects best model based on environment
-  - **Colab**: `faster-whisper-medium` (leverages GPU, best quality)
+  - **Colab**: `whisperx-medium` (speaker diarization, best quality, leverages GPU)
   - **Local/M4 Mac**: `faster-whisper-base` (fast on CPU, good quality)
 
 **You can override the default model in the configuration cell if needed!**
+
+### **Speaker Diarization with WhisperX** 👥
+
+WhisperX provides advanced features:
+- **Speaker Separation**: Automatically detects and labels different speakers
+- **Word-Level Timestamps**: More precise timing than standard Whisper
+- **Perfect for**: Meetings, interviews, podcasts, multi-speaker conversations
+
+**Requirements:**
+- HuggingFace account token (free): https://huggingface.co/settings/tokens
+- Accept pyannote terms: https://huggingface.co/pyannote/speaker-diarization
+- Set `HF_TOKEN` environment variable or pass in notebook
+
+**Output Example:**
+```
+[SPEAKER_00] 0:00-0:05
+Hello, welcome to the meeting.
+
+[SPEAKER_01] 0:05-0:12
+Thanks for having me. Let's discuss the project.
+```
 
 
 

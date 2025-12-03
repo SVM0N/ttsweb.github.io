@@ -50,20 +50,37 @@ def format_timestamp_vtt(seconds: float) -> str:
 
 
 def save_as_txt(result: Dict, output_path: Path) -> None:
-    """Save transcription as plain text.
+    """Save transcription as plain text with optional speaker labels.
 
     Args:
         result: Transcription result dictionary
         output_path: Path to output file
     """
     with open(output_path, 'w', encoding='utf-8') as f:
-        f.write(result['text'])
+        # Check if we have speaker information
+        segments = result.get('segments', [])
+        if segments and 'speaker' in segments[0]:
+            # Format with speaker labels
+            current_speaker = None
+            for segment in segments:
+                speaker = segment.get('speaker', 'UNKNOWN')
+                text = segment.get('text', '').strip()
+
+                # Add speaker label when speaker changes
+                if speaker != current_speaker:
+                    f.write(f"\n[{speaker}]\n")
+                    current_speaker = speaker
+
+                f.write(f"{text}\n")
+        else:
+            # Plain text without speakers
+            f.write(result['text'])
 
     print(f"✓ Saved text: {output_path}")
 
 
 def save_as_srt(result: Dict, output_path: Path) -> None:
-    """Save transcription as SRT subtitle format.
+    """Save transcription as SRT subtitle format with optional speaker labels.
 
     Args:
         result: Transcription result dictionary with segments
@@ -79,14 +96,17 @@ def save_as_srt(result: Dict, output_path: Path) -> None:
             end_time = format_timestamp_srt(segment['end'])
             f.write(f"{start_time} --> {end_time}\n")
 
-            # Text
-            f.write(f"{segment['text'].strip()}\n\n")
+            # Text with optional speaker label
+            text = segment['text'].strip()
+            if 'speaker' in segment:
+                text = f"[{segment['speaker']}] {text}"
+            f.write(f"{text}\n\n")
 
     print(f"✓ Saved SRT: {output_path}")
 
 
 def save_as_vtt(result: Dict, output_path: Path) -> None:
-    """Save transcription as WebVTT caption format.
+    """Save transcription as WebVTT caption format with optional speaker labels.
 
     Args:
         result: Transcription result dictionary with segments
@@ -105,8 +125,11 @@ def save_as_vtt(result: Dict, output_path: Path) -> None:
             end_time = format_timestamp_vtt(segment['end'])
             f.write(f"{start_time} --> {end_time}\n")
 
-            # Text
-            f.write(f"{segment['text'].strip()}\n\n")
+            # Text with optional speaker label
+            text = segment['text'].strip()
+            if 'speaker' in segment:
+                text = f"<v {segment['speaker']}>{text}"
+            f.write(f"{text}\n\n")
 
     print(f"✓ Saved VTT: {output_path}")
 
