@@ -40,7 +40,7 @@ This project provides Jupyter notebooks that:
 1. Extract text from PDFs/EPUBs with precise coordinate tracking
 2. Generate high-quality speech audio using AI TTS models
 3. Create timeline manifests for synchronized text highlighting
-4. Output files ready to upload to the web player at **https://svm0n.github.io/ttsweb.github.io/**
+4. Output files ready to upload to the web player at **https://svm0n.github.io/ttsweb/**
 
 ## 🚀 Getting Started
 
@@ -49,7 +49,7 @@ This project provides Jupyter notebooks that:
 **The easiest way to use this project is with the new unified notebook:**
 
 #### Option 1: Google Colab (No Installation Required) 🌐
-1. Click here to open in Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SVM0N/ttsweb.github.io/blob/main/TTS.ipynb)
+1. Click here to open in Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SVM0N/ttsweb/blob/main/TTS.ipynb)
 
 2. The notebook will automatically:
    - Detect it's running in Colab
@@ -63,8 +63,8 @@ This project provides Jupyter notebooks that:
 #### Option 2: Local Installation
 1. Clone this repository:
    ```bash
-   git clone https://github.com/SVM0N/ttsweb.github.io.git
-   cd ttsweb.github.io
+   git clone https://github.com/SVM0N/ttsweb.git
+   cd ttsweb
    ```
 
 2. Open the unified notebook:
@@ -104,8 +104,8 @@ This project provides Jupyter notebooks that:
 **Steps:**
 1. Clone this repository:
    ```bash
-   git clone https://github.com/SVM0N/ttsweb.github.io.git
-   cd ttsweb.github.io
+   git clone https://github.com/SVM0N/ttsweb.git
+   cd ttsweb
    ```
 
 2. Choose a notebook (see "Which Model to Use" below)
@@ -294,7 +294,7 @@ Each notebook generates two files:
 
 1. **Generate your files** using any notebook above
 
-2. **Upload to the web player** at: **https://svm0n.github.io/ttsweb.github.io/**
+2. **Upload to the web player** at: **https://svm0n.github.io/ttsweb/**
 
 3. **Upload both files:**
    - Your PDF file

@@ -36,7 +36,7 @@ except ImportError:
     print("💻 Running locally")
 
 # GitHub repository URL for downloading Python modules
-GITHUB_RAW_URL = "https://raw.githubusercontent.com/SVM0N/ttsweb.github.io/main/"
+GITHUB_RAW_URL = "https://raw.githubusercontent.com/SVM0N/ttsweb/main/"
 
 # Required Python modules (in tts_lib folder)
 REQUIRED_MODULES = [
