@@ -1,6 +1,6 @@
-# TTS Web - PDF to Synchronized Audio
+# TTS/STT Web - Audio ↔ Text Conversion
 
-Convert PDFs and EPUBs into audiobooks with synchronized text highlighting using state-of-the-art text-to-speech models.
+Convert PDFs and EPUBs into audiobooks with synchronized text highlighting using state-of-the-art text-to-speech models, or transcribe audio files to text with timestamps using speech-to-text models.
 
 <details>
 <summary>
@@ -11,8 +11,8 @@ Convert PDFs and EPUBs into audiobooks with synchronized text highlighting using
 
 - [What This Does](#-what-this-does)
 - [Getting Started](#-getting-started)
-  - [Quick Start with Unified Notebook](#quick-start-with-unified-notebook)
-  - [Google Colab Setup](#google-colab-setup)
+  - [Text-to-Speech (TTS)](#text-to-speech-tts)
+  - [Speech-to-Text (STT)](#speech-to-text-stt)
   - [Traditional Setup](#traditional-setup-legacy-notebooks)
 - [Modular Architecture](#-modular-architecture)
   - [Core Modules](#core-modules)
@@ -37,16 +37,25 @@ Convert PDFs and EPUBs into audiobooks with synchronized text highlighting using
 
 ## 🎯 What This Does
 This project provides Jupyter notebooks that:
+
+**Text-to-Speech (TTS):**
 1. Extract text from PDFs/EPUBs with precise coordinate tracking
 2. Generate high-quality speech audio using AI TTS models
 3. Create timeline manifests for synchronized text highlighting
 4. Output files ready to upload to the web player at **https://svm0n.github.io/ttsweb.github.io/**
 
+**Speech-to-Text (STT):**
+1. Transcribe audio files (MP3, WAV, M4A, FLAC, OGG) and video files (MP4, MOV, AVI, MKV, etc.) to text
+2. Generate timestamped transcripts with multiple output formats
+3. Support for multiple languages and translation
+4. Output as TXT, SRT subtitles, VTT captions, or JSON with word-level timestamps
+5. Automatic audio extraction from video files using ffmpeg
+
 ## 🚀 Getting Started
 
-### Quick Start with Unified Notebook
+### Text-to-Speech (TTS)
 #### RECOMMENDED
-**The easiest way to use this project is with the new unified notebook:**
+**The easiest way to convert text/PDFs to speech is with the unified TTS notebook:**
 
 #### Option 1: Google Colab (No Installation Required) 🌐
 1. Click here to open in Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SVM0N/ttsweb.github.io/blob/main/TTS.ipynb)
@@ -86,6 +95,69 @@ This project provides Jupyter notebooks that:
 - 💾 **Saves storage**: No need to install everything upfront
 - 🔄 **Easy switching**: Change configuration and re-run without reinstalling
 - 🌐 **Works everywhere**: Runs locally or in Google Colab with automatic detection
+
+---
+
+### Speech-to-Text (STT)
+#### NEW: Transcribe Audio to Text 🎙️
+**Convert audio files to text with timestamped transcripts:**
+
+#### Option 1: Google Colab (No Installation Required) 🌐
+1. Click here to open in Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SVM0N/ttsweb.github.io/blob/main/STT.ipynb)
+
+2. The notebook will automatically:
+   - Detect it's running in Colab
+   - Download required Python modules from GitHub
+   - Set up the environment
+
+3. Upload your audio file when prompted and run the cells
+
+4. Download your transcripts in multiple formats (TXT, SRT, VTT, JSON)
+
+#### Option 2: Local Installation
+1. Clone this repository (if you haven't already):
+   ```bash
+   git clone https://github.com/SVM0N/ttsweb.github.io.git
+   cd ttsweb.github.io
+   ```
+
+2. Open the STT notebook:
+   ```bash
+   jupyter notebook STT.ipynb
+   ```
+
+3. Follow the notebook instructions to:
+   - Create an isolated conda environment (optional but recommended)
+   - Choose your STT model (Whisper or Faster-Whisper)
+   - Select output formats (TXT, SRT, VTT, JSON)
+   - Run transcription on your audio files
+
+**Supported STT Models:**
+- **Whisper** (tiny, base, small, medium, large) - OpenAI's speech recognition
+- **Faster-Whisper** (optimized versions) - 4x faster with same accuracy
+
+**Supported Input Formats:**
+- **Audio**: MP3, WAV, M4A, FLAC, OGG
+- **Video**: MP4, MOV, AVI, MKV, WebM, FLV, etc. (audio extracted automatically)
+
+**Supported Output Formats:**
+- **TXT**: Plain text transcript
+- **SRT**: Subtitle format with timestamps
+- **VTT**: WebVTT captions for web players
+- **JSON**: Full transcription data with word-level timestamps
+
+**Features:**
+- ✨ Multiple model sizes (choose speed vs accuracy)
+- 🌍 Multi-language support with auto-detection
+- 📝 Translation to English
+- ⚡ Faster-Whisper for 4x speedup
+- 📊 Multiple output formats simultaneously
+- 🎬 Video file support (automatic audio extraction)
+- 🤖 **Smart defaults**: Automatically selects best model based on environment
+  - **Colab**: `faster-whisper-medium` (leverages GPU, best quality)
+  - **Local/M4 Mac**: `faster-whisper-base` (fast on CPU, good quality)
+
+**You can override the default model in the configuration cell if needed!**
 
 
 
@@ -128,7 +200,9 @@ This project now features a **modular Python architecture** that makes it easy t
 
 ### Core Modules
 
-**`TTS.ipynb`** - Unified notebook interface
+#### Text-to-Speech (TTS) Modules
+
+**`TTS.ipynb`** - Unified TTS notebook interface
 - Single notebook for all TTS models and PDF extractors
 - Interactive model and extractor selection
 - No code duplication across notebooks
@@ -155,10 +229,43 @@ This project now features a **modular Python architecture** that makes it easy t
 - Coordinate tracking for synchronized highlighting
 - Manifest validation and statistics
 
+#### Speech-to-Text (STT) Modules
+
+**`STT.ipynb`** - Unified STT notebook interface
+- Single notebook for all STT models
+- Multiple output format support
+- Easy model switching
+
+**`stt_backends.py`** - STT model backends
+- `WhisperBackend`: OpenAI Whisper models
+- `FasterWhisperBackend`: Optimized Whisper (4x faster)
+- Extensible for adding new models
+
+**`output_formatters.py`** - Transcription output formatters
+- TXT format (plain text)
+- SRT format (subtitles)
+- VTT format (web captions)
+- JSON format (timestamped data)
+
+**`stt_setup.py`** - STT dependency installation
+- Smart installation based on model selection
+- Minimal dependencies
+
+**`stt_examples.py`** - High-level STT workflows
+- Complete transcription pipeline
+- Multi-format output generation
+
+#### Shared Modules
+
 **`config.py`** - Configuration management
 - Device selection (CUDA/CPU/MPS)
 - Output directory management
 - Logging configuration
+
+**`cleanup.py`** - Environment and cache management
+- Conda environment setup and cleanup
+- Model cache management
+- Storage optimization
 
 ### Benefits of Modular Design
 
