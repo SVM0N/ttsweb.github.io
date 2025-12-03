@@ -107,7 +107,8 @@ class WhisperBackend:
         self,
         audio_path: Union[str, Path],
         language: Optional[str] = None,
-        task: str = "transcribe"
+        task: str = "transcribe",
+        verbose: bool = True
     ) -> Dict:
         """Transcribe audio or video file.
 
@@ -115,6 +116,7 @@ class WhisperBackend:
             audio_path: Path to audio or video file
             language: Language code (None for auto-detect)
             task: "transcribe" or "translate"
+            verbose: Show progress information
 
         Returns:
             Dictionary with transcription results including:
@@ -138,6 +140,7 @@ class WhisperBackend:
             options = {
                 "task": task,
                 "fp16": self.device == "cuda",  # Use FP16 only on CUDA
+                "verbose": verbose,  # Enable Whisper's built-in progress
             }
 
             if language:
@@ -194,7 +197,8 @@ class FasterWhisperBackend:
         self,
         audio_path: Union[str, Path],
         language: Optional[str] = None,
-        task: str = "transcribe"
+        task: str = "transcribe",
+        verbose: bool = True
     ) -> Dict:
         """Transcribe audio or video file.
 
@@ -202,6 +206,7 @@ class FasterWhisperBackend:
             audio_path: Path to audio or video file
             language: Language code (None for auto-detect)
             task: "transcribe" or "translate"
+            verbose: Show progress information
 
         Returns:
             Dictionary with transcription results including:
@@ -222,18 +227,24 @@ class FasterWhisperBackend:
         try:
             print(f"Transcribing {audio_path.name}...")
 
-            # Transcribe
-            segments, info = self.model.transcribe(
+            # Transcribe with progress callback
+            segments_generator, info = self.model.transcribe(
                 str(actual_audio_path),
                 language=language,
-                task=task
+                task=task,
+                vad_filter=True,  # Enable VAD for better segmentation
+                word_timestamps=False
             )
 
-            # Convert segments iterator to list and build result
+            # Convert segments iterator to list with progress
             segments_list = []
             full_text = []
 
-            for segment in segments:
+            if verbose:
+                print(f"Processing segments", end="", flush=True)
+                segment_count = 0
+
+            for segment in segments_generator:
                 segments_list.append({
                     "id": segment.id,
                     "start": segment.start,
@@ -246,6 +257,15 @@ class FasterWhisperBackend:
                     "no_speech_prob": segment.no_speech_prob,
                 })
                 full_text.append(segment.text)
+
+                if verbose:
+                    segment_count += 1
+                    # Print progress dots
+                    if segment_count % 10 == 0:
+                        print(".", end="", flush=True)
+
+            if verbose:
+                print(f" {segment_count} segments")  # New line after dots
 
             result = {
                 "text": " ".join(full_text),
@@ -308,7 +328,8 @@ class WhisperXBackend:
         task: str = "transcribe",
         enable_diarization: bool = False,
         min_speakers: Optional[int] = None,
-        max_speakers: Optional[int] = None
+        max_speakers: Optional[int] = None,
+        verbose: bool = True
     ) -> Dict:
         """Transcribe audio or video file with optional speaker diarization.
 
@@ -319,6 +340,7 @@ class WhisperXBackend:
             enable_diarization: Enable speaker diarization
             min_speakers: Minimum number of speakers (for diarization)
             max_speakers: Maximum number of speakers (for diarization)
+            verbose: Show progress information
 
         Returns:
             Dictionary with transcription results including:
@@ -341,24 +363,41 @@ class WhisperXBackend:
             actual_audio_path = audio_path
 
         try:
-            print(f"Transcribing with WhisperX: {audio_path.name}...")
+            if verbose:
+                print(f"Transcribing with WhisperX: {audio_path.name}...")
 
             # Load audio
             audio = whisperx.load_audio(str(actual_audio_path))
 
+            if verbose:
+                import librosa
+                duration = librosa.get_duration(y=audio, sr=16000)
+                print(f"📊 Audio duration: {duration:.1f} seconds ({duration/60:.1f} minutes)")
+
             # 1. Transcribe with WhisperX
+            if verbose:
+                print(f"⏳ Step 1/3: Transcribing audio...", end="", flush=True)
+
             result = self.model.transcribe(
                 audio,
                 language=language,
-                task=task
+                task=task,
+                print_progress=verbose
             )
 
             detected_language = result.get("language", language)
-            print(f"✓ Transcription complete (language: {detected_language})")
+            if verbose:
+                print(f" ✓")
+                print(f"   Language detected: {detected_language}")
+                print(f"   Segments: {len(result.get('segments', []))}")
 
             # 2. Align whisper output for word-level timestamps
+            if verbose:
+                print(f"⏳ Step 2/3: Aligning for word-level timestamps...", end="", flush=True)
+
             if not self.align_model or self.align_metadata.get("language") != detected_language:
-                print(f"Loading alignment model for {detected_language}...")
+                if verbose:
+                    print(f"\n   Loading alignment model for {detected_language}...", end="", flush=True)
                 self.align_model, self.align_metadata = whisperx.load_align_model(
                     language_code=detected_language,
                     device=self.device
@@ -372,7 +411,8 @@ class WhisperXBackend:
                 self.device,
                 return_char_alignments=False
             )
-            print(f"✓ Alignment complete (word-level timestamps)")
+            if verbose:
+                print(f" ✓")
 
             # 3. Assign speaker labels (if enabled)
             if enable_diarization:
@@ -382,14 +422,17 @@ class WhisperXBackend:
                     print("   Get token from: https://huggingface.co/settings/tokens")
                     print("   Skipping diarization...")
                 else:
+                    if verbose:
+                        print(f"⏳ Step 3/3: Identifying speakers...", end="", flush=True)
+
                     if not self.diarize_model:
-                        print("Loading speaker diarization model...")
+                        if verbose:
+                            print(f"\n   Loading diarization model...", end="", flush=True)
                         self.diarize_model = whisperx.DiarizationPipeline(
                             use_auth_token=self.hf_token,
                             device=self.device
                         )
 
-                    print("Running speaker diarization...")
                     diarize_segments = self.diarize_model(
                         audio,
                         min_speakers=min_speakers,
@@ -397,7 +440,17 @@ class WhisperXBackend:
                     )
 
                     result = whisperx.assign_word_speakers(diarize_segments, result)
-                    print(f"✓ Speaker diarization complete")
+
+                    if verbose:
+                        # Count unique speakers
+                        speakers = set()
+                        for seg in result.get("segments", []):
+                            if "speaker" in seg:
+                                speakers.add(seg["speaker"])
+                        print(f" ✓")
+                        print(f"   Speakers detected: {len(speakers)} ({', '.join(sorted(speakers))})")
+            elif verbose:
+                print(f"⏩ Step 3/3: Speaker diarization skipped")
 
             # Format result
             segments_list = result.get("segments", [])

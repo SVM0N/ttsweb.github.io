@@ -17,7 +17,8 @@ def run_transcription(
     task: str = "transcribe",
     enable_diarization: bool = False,
     min_speakers: Optional[int] = None,
-    max_speakers: Optional[int] = None
+    max_speakers: Optional[int] = None,
+    verbose: bool = True
 ) -> Dict:
     """Run complete transcription workflow.
 
@@ -31,6 +32,7 @@ def run_transcription(
         enable_diarization: Enable speaker diarization (WhisperX only)
         min_speakers: Minimum number of speakers (for diarization)
         max_speakers: Maximum number of speakers (for diarization)
+        verbose: Show progress information during transcription
 
     Returns:
         Dictionary with results and output file paths
@@ -60,7 +62,8 @@ def run_transcription(
             task=task,
             enable_diarization=enable_diarization,
             min_speakers=min_speakers,
-            max_speakers=max_speakers
+            max_speakers=max_speakers,
+            verbose=verbose
         )
     else:
         # Standard Whisper or Faster-Whisper - no diarization
@@ -70,7 +73,8 @@ def run_transcription(
         result = stt.transcribe(
             audio_path=audio_path,
             language=language,
-            task=task
+            task=task,
+            verbose=verbose
         )
 
     # Generate base output path (without extension)
